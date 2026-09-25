@@ -1,0 +1,2669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Capital & Trade Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/vuetify@3.7.6/dist/vuetify.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Inter',sans-serif; font-size:15px; color:#F1F5F9; -webkit-font-smoothing:antialiased; }
+  .mono { font-variant-numeric:tabular-nums!important; font-feature-settings:'tnum' 1!important; }
+  .text-green { color:#4ADE80!important; }
+  .text-red { color:#F87171!important; }
+  .text-yellow { color:#FBBF24!important; }
+  .text-accent { color:#60A5FA!important; }
+  .bg-green-subtle { background:rgba(74,222,128,0.12)!important; }
+  .bg-red-subtle { background:rgba(248,113,113,0.12)!important; }
+  .bg-blue-subtle { background:rgba(96,165,250,0.12)!important; }
+  .bg-purple-subtle { background:rgba(167,139,250,0.12)!important; }
+  .bg-yellow-subtle { background:rgba(251,191,36,0.12)!important; }
+
+  /* Global overrides for Vuetify inputs */
+  .v-field { font-size:14px!important; }
+  .v-label { font-size:13px!important; font-weight:500!important; }
+  .v-btn { font-weight:600!important; letter-spacing:0.3px!important; text-transform:none!important; }
+  .v-card-title { font-size:18px!important; font-weight:700!important; letter-spacing:-0.2px!important; }
+  .v-tab { font-size:14px!important; font-weight:600!important; text-transform:none!important; letter-spacing:0.2px!important; }
+
+  /* Ribbon */
+  .ribbon-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:0; border:2px solid #334155; background:#1E293B; border-radius:8px; }
+  .ribbon-cell { padding:12px 16px; border-right:2px solid #334155; position:relative; }
+  .ribbon-cell:last-child { border-right:none; }
+  .ribbon-cell:hover { background:rgba(30,37,56,0.5); transition:background 0.2s ease; }
+  .ribbon-title { font-size:13px; text-transform:uppercase; letter-spacing:2px; color:#94A3B8; margin-bottom:10px; font-weight:800; padding-bottom:6px; border-bottom:1px solid #334155; }
+  .ribbon-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; font-size:13px; }
+  .ribbon-row:last-child { margin-bottom:0; }
+  .ribbon-label { color:#94A3B8; font-size:12px; font-weight:500; }
+  .ribbon-val { font-variant-numeric:tabular-nums; font-weight:700; font-size:14px; letter-spacing:-0.3px; }
+  .ribbon-hero { font-variant-numeric:tabular-nums; font-weight:800; font-size:20px; letter-spacing:-0.5px; margin-bottom:6px; }
+  .ribbon-hero-label { font-size:10px; color:#64748B; text-transform:uppercase; letter-spacing:1px; font-weight:600; margin-bottom:1px; }
+
+  /* Trade cards — compact */
+  .trade-grid { display:grid; grid-template-columns:150px minmax(0,3fr) minmax(0,3fr) minmax(0,2fr); gap:4px; align-items:stretch; }
+  .trade-card-open, .trade-card-closed { min-height:110px; }
+  .trade-section { padding:3px 10px 2px; display:flex; flex-direction:column; }
+  .trade-section + .trade-section { border-left:1px solid #334155; }
+  .tc-title { font-size:12px; text-transform:uppercase; letter-spacing:1px; color:#F1F5F9; font-weight:800; margin-bottom:3px; }
+  .tc-row { display:flex; align-items:center; margin-bottom:1px; font-size:16px; }
+  .tc-row .tc-label { white-space:nowrap; }
+  .tc-row .tc-val { white-space:nowrap; }
+  .tc-grid { display:grid; grid-template-columns:repeat(3,1fr); }
+  .tc-cell { padding:1px 8px; display:flex; align-items:center; gap:5px; }
+  .tc-cell + .tc-cell { border-left:1px solid rgba(255,255,255,0.08); }
+  .tc-cell-label { font-size:13px; color:#94A3B8; font-weight:500; white-space:nowrap; }
+  .tc-cell-val { font-variant-numeric:tabular-nums; font-weight:700; font-size:13px; color:#F1F5F9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tc-split { display:flex; gap:0; }
+  .tc-split-main { flex:1; min-width:0; }
+  .tc-split-aside { border-left:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; padding:0 8px; margin-left:4px; width:130px; min-width:130px; max-width:130px; flex-shrink:0; }
+  .tc-row:last-child { margin-bottom:0; }
+  .tc-label { color:#94A3B8; font-weight:500; font-size:14px; }
+  .tc-val { font-variant-numeric:tabular-nums; font-weight:700; font-size:14px; color:#F1F5F9; }
+  .r-big { font-size:18px; font-weight:800; font-variant-numeric:tabular-nums; text-align:center; margin:2px 0; letter-spacing:-0.5px; }
+  .realized-leg { display:flex; justify-content:space-between; font-size:12px; color:#F1F5F9; padding:1px 0; }
+  .exit-leg-row { display:grid; grid-template-columns:18px minmax(0,105px) minmax(0,125px) 48px auto; align-items:center; column-gap:6px; font-size:12px; margin-bottom:3px; padding:2px 4px; }
+  .exit-leg-x { font-weight:700; color:#FB923C; min-width:0; }
+  .exit-leg-qty { color:#F1F5F9; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .exit-leg-date { color:#94A3B8; font-size:10px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .exit-leg-r { font-variant-numeric:tabular-nums; font-weight:700; text-align:right; min-width:0; white-space:nowrap; }
+  .exit-leg-pnl { font-variant-numeric:tabular-nums; font-weight:700; text-align:right; min-width:0; white-space:nowrap; }
+
+  /* Trades Table view */
+  .trades-table-wrap { border:1px solid #334155; border-radius:10px; overflow-x:auto; background:#1E293B; }
+  .trades-table { width:100%; border-collapse:collapse; font-size:13px; white-space:nowrap; }
+  .trades-table thead th { text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:0.8px; color:#94A3B8; font-weight:700; padding:10px 14px; border-bottom:1px solid #334155; }
+  .trades-table tbody td { padding:9px 14px; color:#F1F5F9; border-bottom:1px solid rgba(51,65,85,0.6); }
+  .trades-table tbody tr:last-child td { border-bottom:none; }
+  .trades-table tbody tr { cursor:pointer; }
+  .trades-table tbody tr:hover td { background:rgba(59,130,246,0.06); }
+  .trades-table tbody tr.trades-table-selected td { background:rgba(59,130,246,0.12); }
+  .trades-table .ta-right { text-align:right; }
+  .trades-table .tt-symbol { font-weight:800; letter-spacing:-0.2px; }
+
+  /* Trade card header — compact */
+  .trade-header { background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.25); border-radius:8px; padding:4px 10px; margin-bottom:4px; }
+
+  /* Section labels — neutral, no background/border tint (kept as no-op hooks
+     in case per-section accenting is wanted again later) */
+  .section-orange, .section-green { }
+  .section-orange .tc-title, .section-green .tc-title { }
+
+  /* Status badges */
+  .status-chip { font-size:11px!important; font-weight:700!important; letter-spacing:0.5px; }
+
+  /* Trade card borders — thick, consistent 2px */
+  .v-card.trade-card-open { border:2px solid #475569!important; border-left:4px solid #3B82F6!important; border-radius:10px!important; cursor:pointer; }
+  .v-card.trade-card-open:hover { border-color:#3B82F6!important; box-shadow:0 4px 20px rgba(59,130,246,0.1)!important; transition:all 0.2s ease; }
+  .v-card.trade-card-open.trade-selected, .v-card.trade-card-closed.trade-selected { border-color:#3B82F6!important; box-shadow:0 0 0 1px #3B82F6, 0 4px 20px rgba(59,130,246,0.2)!important; background:#1E2A45!important; opacity:1!important; }
+  .v-card.trade-card-closed { border:2px solid #64748B!important; border-left:4px solid #64748B!important; border-radius:10px!important; }
+  .v-card.trade-card-closed:hover { border-color:#475569!important; box-shadow:0 4px 20px rgba(71,85,105,0.1)!important; transition:all 0.2s ease; }
+  .v-card.trade-card-closed.trade-selected:hover { border-color:#3B82F6!important; box-shadow:0 0 0 1px #3B82F6, 0 4px 20px rgba(59,130,246,0.2)!important; }
+
+  /* Dialog styling */
+  .v-dialog .v-card { border:1px solid #334155!important; border-radius:16px!important; box-shadow:0 24px 64px rgba(0,0,0,0.5)!important; }
+  .v-dialog .v-card-title { padding:20px 24px!important; }
+  .v-dialog .v-card-text { padding:8px 24px 24px!important; }
+  .v-dialog .v-card-actions { padding:16px 24px!important; }
+  .v-dialog .text-overline { font-size:11px!important; font-weight:700!important; letter-spacing:1.5px!important; }
+
+  /* Dialog form sections — bordered cards */
+  .dialog-section { border:1px solid #334155; border-radius:10px; padding:16px 18px; margin-bottom:14px; background:rgba(15,23,42,0.3); }
+  .dialog-section-title { display:flex; align-items:center; gap:6px; font-size:11px; text-transform:uppercase; letter-spacing:1.5px; font-weight:700; color:#60A5FA; margin-bottom:14px; padding-bottom:8px; border-bottom:1px solid rgba(51,65,85,0.6); }
+  .dialog-section-title .v-icon { opacity:0.85; }
+
+  /* Dialog header — accent wash + icon badge (wealthlab.in style) */
+  .dialog-title-accent { position:relative; border-bottom:1px solid rgba(51,65,85,0.6); }
+  .dialog-title-accent.accent-blue { background:linear-gradient(135deg,rgba(59,130,246,0.14),rgba(59,130,246,0) 75%); }
+  .dialog-title-accent.accent-red { background:linear-gradient(135deg,rgba(239,68,68,0.14),rgba(239,68,68,0) 75%); }
+  .dialog-title-accent.accent-green { background:linear-gradient(135deg,rgba(74,222,128,0.14),rgba(74,222,128,0) 75%); }
+  .dialog-title-accent.accent-slate { background:linear-gradient(135deg,rgba(148,163,184,0.12),rgba(148,163,184,0) 75%); }
+  .dialog-icon-badge { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+
+  /* Vuetify input fields - theme-aware colors via CSS vars */
+  .v-field--variant-outlined .v-field__outline { --v-field-border-opacity:0.4; }
+  .v-field--variant-outlined:hover .v-field__outline { --v-field-border-opacity:0.7; }
+  .v-field input, .v-field textarea, .v-field .v-select__selection-text { color:#F1F5F9!important; }
+  .v-field .v-field__prepend-inner, .v-field .v-field__append-inner { color:#94A3B8!important; }
+
+  /* Button upgrades */
+  .v-btn--variant-flat { box-shadow:0 2px 8px rgba(59,130,246,0.25)!important; }
+  .v-btn--variant-flat:hover { box-shadow:0 4px 16px rgba(59,130,246,0.35)!important; transform:translateY(-1px); transition:all 0.15s ease; }
+  .v-btn--variant-outlined { border-width:1.5px!important; }
+
+  /* Tabs underline */
+  .v-tabs { border-bottom:1px solid rgba(51,65,85,0.6); }
+
+  @media (max-width:900px) { .ribbon-grid { grid-template-columns:repeat(3,1fr); } }
+  @media (max-width:600px) { .ribbon-grid { grid-template-columns:1fr 1fr; } .trade-grid { grid-template-columns:1fr; } }
+
+  /* Preview box in dialogs */
+  .preview-box { padding:14px 16px; background:rgba(15,23,42,0.7); border:1px solid #334155; border-radius:10px; font-size:13px; }
+  .pv-row { display:flex; justify-content:space-between; margin-bottom:5px; }
+  .pv-row:last-child { margin-bottom:0; }
+  .pv-label { color:#94A3B8; font-weight:500; }
+  /* Stacked label/value for view dialog */
+  .pv-stack { display:flex; flex-direction:column; gap:2px; }
+  .pv-stack .pv-label { font-size:11px; color:#94A3B8; font-weight:500; letter-spacing:0.3px; }
+  .pv-stack .pv-val { font-size:14px; font-weight:700; color:#F1F5F9; }
+  /* Analytics */
+  .analytics-chart-box { position:relative; height:220px; width:100%; }
+  .analytics-chart-box-lg { position:relative; height:320px; width:100%; }
+  .grp-table { width:100%; }
+  .grp-row { display:flex; align-items:center; gap:8px; font-size:12px; padding:6px 4px; border-bottom:1px dashed rgba(51,65,85,0.6); }
+  .grp-row:last-child { border-bottom:none; }
+  .grp-row.head { font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:#64748B; font-weight:700; border-bottom:1px solid #334155; }
+  .grp-col-label { flex:2; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .grp-col { flex:1; text-align:right; }
+  .analytics-stat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+  @media (max-width:700px) { .analytics-stat-grid { grid-template-columns:repeat(2,1fr); } }
+  .analytics-stat-grid .pv-stack { border:1px solid #334155; border-radius:10px; padding:12px 14px; background:#0F172A; }
+  .analytics-stat-grid .pv-stack .pv-val { font-size:18px; }
+  .analytics-card-header { background:rgba(96,165,250,0.08); border:1px solid rgba(51,65,85,0.6); border-radius:8px; padding:10px 14px; margin-bottom:16px; font-size:13px; text-transform:uppercase; letter-spacing:1px; font-weight:700; color:#60A5FA; display:flex; align-items:center; gap:8px; }
+  .aj-dash-card { border:1px solid #334155; border-radius:10px; overflow:hidden; margin-bottom:20px; background:#0F172A; }
+  .aj-dash-header { background:linear-gradient(135deg,#1E3A5F,#16233A); padding:10px 16px; font-size:13px; font-weight:800; letter-spacing:1.5px; color:#F1F5F9; display:flex; align-items:center; gap:8px; border-bottom:2px solid #3B82F6; text-transform:uppercase; }
+  .aj-dash-row { display:grid; grid-template-columns:repeat(9,1fr); }
+  .aj-dash-cell { padding:12px 8px; text-align:center; border-right:1px solid rgba(51,65,85,0.6); }
+  .aj-dash-cell:last-child { border-right:none; }
+  .aj-dash-cell .lbl { font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:#94A3B8; font-weight:700; margin-bottom:6px; }
+  .aj-dash-cell .val { font-size:16px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-0.3px; color:#F1F5F9; }
+  @media (max-width:1000px) { .aj-dash-row { grid-template-columns:repeat(3,1fr); } .aj-dash-cell { border-bottom:1px solid rgba(51,65,85,0.6); } .aj-dash-cell:nth-child(3n) { border-right:none; } }
+  @media (max-width:500px) { .aj-dash-row { grid-template-columns:repeat(2,1fr); } .aj-dash-cell:nth-child(3n) { border-right:1px solid rgba(51,65,85,0.6); } .aj-dash-cell:nth-child(2n) { border-right:none; } }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width:6px; }
+  ::-webkit-scrollbar-track { background:#0F172A; }
+  ::-webkit-scrollbar-thumb { background:#334155; border-radius:3px; }
+  ::-webkit-scrollbar-thumb:hover { background:#3B82F6; }
+
+  /* Context menu */
+  .ctx-overlay { position:fixed; inset:0; z-index:99; }
+  .ctx-menu { position:fixed; z-index:100; background:#1E293B; border:1px solid #334155; border-radius:8px; padding:4px 0; min-width:170px; box-shadow:0 8px 30px rgba(0,0,0,0.5); }
+  .ctx-item { display:flex; align-items:center; padding:8px 14px; font-size:13px; font-weight:600; color:#CBD5E1; cursor:pointer; }
+  .ctx-item:hover { background:rgba(59,130,246,0.1); }
+
+  /* App bar */
+  .v-app-bar { border-bottom:1px solid rgba(51,65,85,0.6)!important; }
+
+  /* Snackbar */
+  .v-snackbar .v-snackbar__content { font-weight:600!important; font-size:14px!important; }
+[v-cloak] { display: none !important; }
+</style>
+</head>
+<body>
+<div id="app" v-cloak>
+<v-app>
+  <!-- ===== APP BAR ===== -->
+  <v-app-bar density="compact" color="#1E293B" flat>
+    <v-app-bar-title class="text-center font-weight-bold" style="font-size:15px;letter-spacing:1.5px;text-transform:uppercase;color:#94A3B8;">
+      <v-icon size="18" class="mr-2" color="amber">mdi-notebook-edit-outline</v-icon>Trading Journal
+    </v-app-bar-title>
+    <template v-slot:append>
+      <v-chip v-if="connected" color="success" size="small" variant="flat" class="mr-3" style="font-weight:700;">
+        <v-icon start size="12">mdi-circle</v-icon> Connected
+      </v-chip>
+      <v-btn size="small" variant="tonal" icon="mdi-cog" @click="showSetup=!showSetup"></v-btn>
+    </template>
+  </v-app-bar>
+
+  <!-- Setup drawer -->
+  <v-navigation-drawer v-model="showSetup" location="right" temporary width="400" color="#1E293B">
+    <v-card flat color="transparent" class="pa-4">
+      <v-card-title class="text-body-1 font-weight-bold">Connection Setup</v-card-title>
+      <v-text-field v-model="url" label="Apps Script Web App URL" variant="outlined" density="compact"
+        class="mono mt-3" placeholder="Paste URL here" hide-details></v-text-field>
+      <v-btn color="primary" block class="mt-3" @click="saveUrl" :loading="connecting">Connect</v-btn>
+    </v-card>
+  </v-navigation-drawer>
+
+  <v-main style="background:#0F172A;">
+    <!-- ===== STICKY HEADER ===== -->
+    <div v-if="connected" style="position:sticky;top:48px;z-index:10;background:#0F172A;">
+    <!-- ===== RIBBON ===== -->
+    <div class="ribbon-grid">
+      <!-- Account -->
+      <div class="ribbon-cell">
+        <div class="ribbon-title">Account</div>
+        <div class="ribbon-row"><span class="ribbon-label">Base Capital</span><span class="ribbon-val">{{fmtCur(capital)}}</span></div>
+        <div class="ribbon-row"><span class="ribbon-label">Running Capital</span><span class="ribbon-val" :class="colorClass(runningCapital - capital)">{{fmtCur(runningCapital)}}</span></div>
+        <div class="ribbon-row"><span class="ribbon-label">Available</span><span class="ribbon-val text-green">{{fmtCur(capital - invested)}}</span></div>
+        <div class="ribbon-row"><span class="ribbon-label">Invested</span><span class="ribbon-val text-accent">{{fmtCur(invested)}} ({{investedPct.toFixed(1)}}%)</span></div>
+      </div>
+      <!-- Performance -->
+      <div class="ribbon-cell">
+        <div class="ribbon-title">Performance · {{monthName}}</div>
+        <div class="ribbon-row"><span class="ribbon-label">Overall P&L</span><span class="ribbon-val" :class="colorClass(totalRealisedPnl)">{{pnlSign(totalRealisedPnl)}}{{fmtCur(totalRealisedPnl)}}</span></div>
+        <div class="ribbon-row"><span class="ribbon-label">Booked (Partial Exits)</span><span class="ribbon-val" :class="colorClass(totalPartialRealisedPnl)">{{pnlSign(totalPartialRealisedPnl)}}{{fmtCur(totalPartialRealisedPnl)}}</span></div>
+        <div class="ribbon-row"><span class="ribbon-label">Realised %ROCE</span><span class="ribbon-val" :class="colorClass(realisedROCE)">{{pnlSign(realisedROCE)}}{{Math.abs(realisedROCE).toFixed(2)}}%</span></div>
+        <div class="ribbon-row"><span class="ribbon-label">Unrealised %ROCE</span><span class="ribbon-val" :class="colorClass(unrealisedROCE)">{{pnlSign(unrealisedROCE)}}{{Math.abs(unrealisedROCE).toFixed(2)}}%</span></div>
+      </div>
+      <!-- Positions -->
+      <div class="ribbon-cell">
+        <div class="ribbon-title">Positions</div>
+        <div class="d-flex align-center ga-2" style="margin-bottom:10px;">
+          <div style="flex:1;">
+            <div class="ribbon-hero-label">Open</div>
+            <div class="ribbon-hero text-accent">{{openPositions}}</div>
+          </div>
+          <div style="width:1px;height:36px;background:#334155;"></div>
+          <div style="flex:1;">
+            <div class="ribbon-hero-label">Unique</div>
+            <div class="ribbon-hero">{{uniqueOpen}}</div>
+          </div>
+        </div>
+      </div>
+      <!-- Streak -->
+      <div class="ribbon-cell">
+        <div class="ribbon-title">Streak</div>
+        <div class="d-flex align-center ga-2" style="margin-bottom:10px;">
+          <div style="flex:1;">
+            <div class="ribbon-hero-label">Losing</div>
+            <div class="ribbon-hero text-red" style="font-size:20px;">{{losingStreak}}<span style="font-size:12px;color:#64748B;font-weight:500;"> / <span style="cursor:pointer;border-bottom:1px dashed #94A3B8;" @click="editThreshold">{{config.Streak_Threshold||7}}</span></span></div>
+          </div>
+          <div style="width:1px;height:36px;background:#334155;"></div>
+          <div style="flex:1;">
+            <div class="ribbon-hero-label">Consec. Wins</div>
+            <div class="ribbon-hero text-green" style="font-size:20px;">{{consecWins}}</div>
+          </div>
+        </div>
+        <v-chip :color="streakBadge.color" size="large" variant="flat" style="font-weight:800;font-size:14px;letter-spacing:0.5px;padding:0 16px;">
+          <v-icon start size="18">{{streakBadge.icon}}</v-icon>{{streakBadge.text}}
+        </v-chip>
+      </div>
+      <!-- Broker Charges -->
+      <div class="ribbon-cell">
+        <div class="ribbon-title" style="display:flex;justify-content:space-between;align-items:center;">
+          Broker Charges
+          <v-btn variant="text" size="x-small" color="primary" @click="openChargesDialog()" style="letter-spacing:0;">Configure</v-btn>
+        </div>
+        <div class="ribbon-row"><span class="ribbon-label">MIS</span><span class="ribbon-val" style="font-size:12px">{{chargeSummary('MIS')}}</span></div>
+        <div class="ribbon-row"><span class="ribbon-label">CNC</span><span class="ribbon-val" style="font-size:12px">{{chargeSummary('CNC')}}</span></div>
+      </div>
+    </div>
+
+    <!-- ===== TABS & TOOLBAR (inside sticky) ===== -->
+      <v-tabs v-model="activeTab" bg-color="#1E293B" slider-color="primary" density="compact">
+        <v-tab value="trades">Trades</v-tab>
+        <v-tab value="account">Account</v-tab>
+        <v-tab value="analytics">Analytics</v-tab>
+      </v-tabs>
+
+      <!-- Toolbar (only on Trades tab) -->
+      <div v-if="activeTab==='trades'" class="d-flex align-center justify-space-between flex-wrap ga-2 pa-3" style="background:#0F172A;border-bottom:1px solid #334155;">
+        <div class="d-flex align-center ga-3">
+          <v-btn-toggle v-model="tradeFilter" mandatory density="compact" variant="outlined" divided color="primary">
+            <v-btn value="Open" size="small">Open ({{allTrades.filter(t=>t.status==='Open').length}})</v-btn>
+            <v-btn value="Closed" size="small">Closed ({{allTrades.filter(t=>t.status==='Closed').length}})</v-btn>
+            <v-btn value="All" size="small">All ({{allTrades.length}})</v-btn>
+          </v-btn-toggle>
+          <v-btn-toggle v-model="tradesViewMode" mandatory density="compact" variant="outlined" divided color="primary">
+            <v-btn value="cards" size="small"><v-icon size="16" class="mr-1">mdi-view-agenda-outline</v-icon>Cards</v-btn>
+            <v-btn value="table" size="small"><v-icon size="16" class="mr-1">mdi-table</v-icon>Trades Table</v-btn>
+          </v-btn-toggle>
+          <v-text-field v-model="searchQuery" density="compact" variant="outlined" hide-details clearable
+            prepend-inner-icon="mdi-magnify" placeholder="Search symbol..." style="max-width:200px;min-width:160px;"></v-text-field>
+          <v-select v-model="sortBy" :items="sortOptions" item-title="label" item-value="key"
+            variant="outlined" density="compact" hide-details
+            prepend-inner-icon="mdi-sort" style="max-width:220px;min-width:180px;"></v-select>
+          <v-btn-toggle v-model="sortDir" mandatory density="compact" variant="outlined" divided>
+            <v-btn value="asc" size="small"><v-icon size="16">mdi-sort-ascending</v-icon></v-btn>
+            <v-btn value="desc" size="small"><v-icon size="16">mdi-sort-descending</v-icon></v-btn>
+          </v-btn-toggle>
+        </div>
+        <div class="d-flex align-center ga-2">
+          <template v-if="selectedTradeId">
+            <v-chip color="primary" size="small" variant="tonal" closable @click:close="selectedTradeId=null" style="font-weight:700;">
+              {{selectedTradeSymbol}}
+            </v-chip>
+            <v-btn variant="outlined" color="grey" prepend-icon="mdi-pencil" @click="openEditDialog(selectedTradeObj)" size="default" elevation="2">Edit</v-btn>
+            <v-btn variant="tonal" color="primary" prepend-icon="mdi-eye" @click="openViewDialog(selectedTradeObj)" size="default" elevation="2">View</v-btn>
+            <v-btn v-if="selectedTradeObj && selectedTradeObj.status==='Open'" color="error" prepend-icon="mdi-exit-run" @click="openExitDialog(selectedTradeObj)" size="default" elevation="2">Exit</v-btn>
+          </template>
+          <v-btn color="primary" prepend-icon="mdi-plus" @click="openNewTradeDialog" size="default" elevation="2">New Trade</v-btn>
+        </div>
+      </div>
+    </div><!-- end sticky header -->
+
+    <!-- ===== TAB CONTENT ===== -->
+    <v-container fluid class="pa-0" v-if="connected">
+      <v-tabs-window v-model="activeTab">
+        <!-- ===== TRADES TAB ===== -->
+        <v-tabs-window-item value="trades">
+          <v-container fluid>
+
+            <!-- Loading -->
+            <v-progress-linear v-if="loadingTrades" indeterminate color="primary" class="mb-2"></v-progress-linear>
+
+            <!-- Trade cards -->
+            <div v-if="!filteredTrades.length && !loadingTrades" class="text-center pa-10" style="color:#94A3B8;">
+              No trades yet. Click "+ New Trade" to get started.
+            </div>
+
+            <template v-if="tradesViewMode==='cards'">
+            <div v-for="t in paginatedTrades" :key="t.id" class="mb-2">
+              <!-- OPEN TRADE CARD -->
+              <v-card v-if="t.status==='Open'" color="#1E293B" variant="outlined" class="pa-2 trade-card-open" :class="{'trade-selected': selectedTradeId===t.id}" @click="toggleSelectTrade(t)" @contextmenu.prevent="openContextMenu($event,t)">
+                <div class="trade-grid">
+                  <!-- Stock Info -->
+                  <div class="trade-section" style="align-items:center;justify-content:center;gap:2px;">
+                    <span style="font-size:17px;font-weight:800;letter-spacing:-0.3px;color:#F1F5F9;text-transform:uppercase;">{{t.symbol}}</span>
+                    <span style="font-size:10px;color:#94A3B8;">{{fmtLocalDate(t.buyDate)}} {{fmtTime(t.buyTime)}}</span>
+                    <div class="d-flex ga-1" style="flex-wrap:wrap;justify-content:center;">
+                      <v-chip :color="t.type==='L'?'success':'error'" size="x-small" variant="flat" style="font-weight:700;min-width:0;padding:0 6px;">{{t.type==='L'?'L':'S'}}</v-chip>
+                      <v-chip :color="t.contract==='MIS'?'purple':'primary'" size="x-small" variant="flat" style="font-weight:700;min-width:0;padding:0 6px;">{{t.contract==='CNC'?'D':'I'}}</v-chip>
+                      <v-chip color="success" size="x-small" variant="tonal" style="font-weight:700;min-width:0;padding:0 6px;">O</v-chip>
+                      <v-chip v-if="getRData(t).openR>0" color="success" size="x-small" variant="flat" style="font-weight:700;min-width:0;padding:0 6px;"><v-icon size="14">mdi-arrow-up-bold</v-icon></v-chip>
+                      <v-chip v-else-if="getRData(t).openR<0" color="error" size="x-small" variant="flat" style="font-weight:700;min-width:0;padding:0 6px;"><v-icon size="14">mdi-arrow-down-bold</v-icon></v-chip>
+                      <v-chip v-else color="grey" size="x-small" variant="flat" style="font-weight:700;min-width:0;padding:0 6px;"><v-icon size="14">mdi-minus</v-icon></v-chip>
+                    </div>
+                    <v-chip v-if="t.setup" size="x-small" variant="flat" style="font-weight:700;min-width:0;padding:0 6px;background:rgba(96,165,250,0.15);color:#F1F5F9;">{{t.setup}}</v-chip>
+                  </div>
+                  <!-- Initial Risk — ORANGE -->
+                  <div class="trade-section section-orange">
+                    <div class="tc-split">
+                      <div class="tc-split-main">
+                        <div class="tc-grid" style="margin-bottom:3px;">
+                          <div class="tc-cell" style="border:none;"><div class="tc-title" style="margin-bottom:0;">Orig Pos({{Math.round((t.capital||capital)>0?(t.invested/(t.capital||capital)*100):0)}}%)</div></div>
+                          <div class="tc-cell"><div class="tc-cell-label" style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:1px;">Qty: {{getRData(t).totalQty}}</div></div>
+                          <div class="tc-cell"><div class="tc-cell-label" style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:1px;">Inv: {{fmtCur(t.invested)}}</div></div>
+                        </div>
+                        <div class="tc-grid">
+                          <div class="tc-cell"><div class="tc-cell-label">Buy Price</div><div class="tc-cell-val text-accent">₹{{n2(t.buyPrice)}}</div></div>
+                          <div class="tc-cell"><div class="tc-cell-label">Net Buy</div><div class="tc-cell-val text-accent">₹{{n2(getRData(t).netBuyPrice)}}</div></div>
+                          <div class="tc-cell"><div class="tc-cell-label">Initial SL</div><div class="tc-cell-val text-red">₹{{n2(t.initialSL)}}</div></div>
+                        </div>
+                        <div class="tc-grid">
+                          <div class="tc-cell"><div class="tc-cell-label">Abs Risk</div><div class="tc-cell-val text-red">{{fmtCur(getRData(t).absoluteRisk)}}</div></div>
+                          <div class="tc-cell"><div class="tc-cell-label">On Capital</div><div class="tc-cell-val text-red">{{getRData(t).riskCapitalPct.toFixed(2)}}%</div></div>
+                          <div class="tc-cell"><div class="tc-cell-label">SL %</div><div class="tc-cell-val text-red">{{getRData(t).initialSLPct.toFixed(2)}}%</div></div>
+                        </div>
+                      </div>
+                      <div class="tc-split-aside">
+                        <div style="text-align:center;">
+                          <div style="font-size:9px;color:#94A3B8;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">1R Unit</div>
+                          <div class="mono text-yellow" style="font-size:14px;font-weight:800;">₹{{n2(getRData(t).oneR)}}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Current Position — GREEN -->
+                  <div class="trade-section section-green">
+                    <div class="tc-split">
+                      <div class="tc-split-main">
+                        <div class="tc-grid" style="margin-bottom:3px;">
+                          <div class="tc-cell" style="border:none;"><div class="tc-title" style="margin-bottom:0;">Cur Pos({{Math.round((t.capital||capital)>0?((getRData(t).remQty * getRData(t).netBuyPrice)/(t.capital||capital)*100):0)}}%)</div></div>
+                          <div class="tc-cell"><div class="tc-cell-label" style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:1px;">Qty: {{getRData(t).remQty}}</div></div>
+                          <div class="tc-cell"><div class="tc-cell-label" style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:1px;">Inv: {{fmtCur(getRData(t).remQty * getRData(t).netBuyPrice)}}</div></div>
+                        </div>
+                        <div class="tc-grid">
+                          <div class="tc-cell"><div class="tc-cell-label">Exited Qty</div><div class="tc-cell-val text-accent">{{getRData(t).exitedQty}}</div></div>
+                          <div class="tc-cell"><div class="tc-cell-label">Open R</div><div class="tc-cell-val" :class="colorClass(getRData(t).openR)">{{fmtR(getRData(t).openR)}}</div></div>
+                          <div class="tc-cell"><div class="tc-cell-label">Open P&L</div><div class="tc-cell-val" :class="colorClass(getRData(t).openPnlAtSL)">{{pnlSign(getRData(t).openPnlAtSL)}}{{fmtCur(getRData(t).openPnlAtSL)}}</div></div>
+                        </div>
+                        <div class="tc-grid">
+                          <div class="tc-cell"><div class="tc-cell-label">P&L %</div><div class="tc-cell-val" :class="colorClass(getRData(t).openPnlAtSL)">{{pnlSign(getRData(t).openPnlAtSL)}}{{t.invested>0?Math.abs(getRData(t).openPnlAtSL/t.invested*100).toFixed(2):'0.00'}}%</div></div>
+                          <div class="tc-cell"></div>
+                          <div class="tc-cell"></div>
+                        </div>
+                      </div>
+                      <div class="tc-split-aside">
+                        <div style="text-align:center;">
+                          <div style="font-size:9px;color:#94A3B8;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Current SL</div>
+                          <div v-if="!slEditing[t.id]" class="d-flex align-center justify-center ga-1">
+                            <span class="mono" style="font-size:14px;font-weight:800;cursor:pointer;border-bottom:2px dashed #4ADE80;color:#F1F5F9;" @click.stop="startSLEdit(t)">
+                              ₹{{n2(getRData(t).currentSL)}}
+                            </span>
+                            <v-icon size="x-small" style="cursor:pointer;color:#94A3B8;" @click.stop="startSLEdit(t)">mdi-pencil</v-icon>
+                          </div>
+                          <div v-else style="display:flex;flex-direction:column;align-items:center;gap:6px;min-width:130px;">
+                            <v-text-field v-model="slEditValue" density="compact" variant="outlined" hide-details
+                              style="width:130px;" class="mono" @keydown.enter="saveSL(t)" @click.stop @focus="$event.target.select()" autofocus></v-text-field>
+                            <div class="d-flex ga-2" style="margin-top:2px;">
+                              <v-icon size="small" style="cursor:pointer;color:#4ADE80;" @click.stop="saveSL(t)">mdi-check-circle</v-icon>
+                              <v-icon size="small" style="cursor:pointer;color:#EF4444;" @click.stop="slEditing={}">mdi-close-circle</v-icon>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Realized — ORANGE -->
+                  <div class="trade-section section-orange">
+                    <template v-if="getRData(t).exitedQty > 0">
+                      <div class="tc-title">Realized <span style="margin-left:8px;">{{fmtCur(t.capital||capital)}}</span> <span style="margin-left:8px;" :class="colorClass(getRData(t).realizedR)">{{fmtR(getRData(t).realizedR)}}</span> <span style="margin-left:8px;" :class="colorClass(getRData(t).realizedPnl)">{{pnlSign(getRData(t).realizedPnl)}}{{fmtCur(getRData(t).realizedPnl)}}</span> <span style="margin-left:8px;" :class="colorClass(getRData(t).realizedPnl)">{{((t.capital||capital)>0?(getRData(t).realizedPnl/(t.capital||capital)*100).toFixed(2):'0.00')}}%</span></div>
+                      <div v-for="(l,i) in getRData(t).legDetails" :key="i" class="realized-leg" style="flex-wrap:wrap;">
+                        <span>X{{i+1}}: {{l.qty}} qty @ ₹{{n2(l.price)}} <span style="color:#94A3B8;font-size:10px;">({{fmtLocalDate(l.date)}} {{fmtTime(l.time)}})</span></span>
+                        <span class="tc-val" :class="colorClass(l.legR)" style="font-size:12px;">{{fmtR(l.legR)}} {{pnlSign(l.legPnl)}}{{fmtCur(l.legPnl)}}</span>
+                      </div>
+                    </template>
+                    <template v-else>
+                      <div class="tc-title">Realized</div>
+                      <div class="d-flex align-center justify-center ga-3 pa-1">
+                        <span style="color:#94A3B8;font-size:12px;">No exits yet</span>
+                        <span class="tc-val" :class="colorClass(getRData(t).openR)" style="font-size:14px;">{{fmtR(getRData(t).openR)}}</span>
+                        <span style="font-size:10px;color:#94A3B8;">at SL</span>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+              </v-card>
+
+              <!-- CLOSED TRADE CARD -->
+              <v-card v-else color="#1E293B" variant="outlined" class="pa-2 trade-card-closed" :class="{'trade-selected': selectedTradeId===t.id}" style="opacity:0.88;cursor:pointer;" @click="toggleSelectTrade(t)" @contextmenu.prevent="openContextMenu($event,t)">
+                <div class="trade-grid">
+                  <!-- Stock Info -->
+                  <div class="trade-section" style="align-items:center;justify-content:center;gap:2px;">
+                    <span style="font-size:17px;font-weight:800;letter-spacing:-0.3px;color:#F1F5F9;text-transform:uppercase;">{{t.symbol}}</span>
+                    <span style="font-size:10px;color:#94A3B8;">{{fmtLocalDate(t.buyDate)}} {{fmtTime(t.buyTime)}}</span>
+                    <span style="font-size:10px;color:#94A3B8;">{{fmtLocalDate(t.exitDate)}} {{getLastExitTime(t)}}</span>
+                    <div class="d-flex ga-1" style="flex-wrap:wrap;justify-content:center;">
+                      <v-chip :color="t.type==='L'?'success':'error'" size="x-small" variant="flat" style="font-weight:700;min-width:0;padding:0 6px;">{{t.type==='L'?'L':'S'}}</v-chip>
+                      <v-chip :color="t.contract==='MIS'?'purple':'primary'" size="x-small" variant="flat" style="font-weight:700;min-width:0;padding:0 6px;">{{t.contract==='CNC'?'D':'I'}}</v-chip>
+                      <v-chip color="grey" size="x-small" variant="tonal" style="font-weight:700;min-width:0;padding:0 6px;">C</v-chip>
+                      <v-chip v-if="(t.pnl||0)>0" color="success" size="x-small" variant="flat" style="font-weight:700;min-width:0;padding:0 6px;"><v-icon size="14">mdi-arrow-up-bold</v-icon></v-chip>
+                      <v-chip v-else-if="(t.pnl||0)<0" color="error" size="x-small" variant="flat" style="font-weight:700;min-width:0;padding:0 6px;"><v-icon size="14">mdi-arrow-down-bold</v-icon></v-chip>
+                      <v-chip v-else color="grey" size="x-small" variant="flat" style="font-weight:700;min-width:0;padding:0 6px;"><v-icon size="14">mdi-minus</v-icon></v-chip>
+                    </div>
+                    <v-chip v-if="t.setup" size="x-small" variant="flat" style="font-weight:700;min-width:0;padding:0 6px;background:rgba(96,165,250,0.15);color:#F1F5F9;">{{t.setup}}</v-chip>
+                  </div>
+                  <!-- Initial Risk — ORANGE -->
+                  <div class="trade-section section-orange">
+                    <div class="tc-split">
+                      <div class="tc-split-main">
+                        <div class="tc-grid" style="margin-bottom:3px;">
+                          <div class="tc-cell" style="border:none;"><div class="tc-title" style="margin-bottom:0;">Orig Pos({{Math.round((t.capital||capital)>0?(t.invested/(t.capital||capital)*100):0)}}%)</div></div>
+                          <div class="tc-cell"><div class="tc-cell-label" style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:1px;">Qty: {{getRData(t).totalQty}}</div></div>
+                          <div class="tc-cell"><div class="tc-cell-label" style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:1px;">Inv: {{fmtCur(t.invested)}}</div></div>
+                        </div>
+                        <div class="tc-grid">
+                          <div class="tc-cell"><div class="tc-cell-label">Buy Price</div><div class="tc-cell-val text-accent">₹{{n2(t.buyPrice)}}</div></div>
+                          <div class="tc-cell"><div class="tc-cell-label">Net Buy</div><div class="tc-cell-val text-accent">₹{{n2(getRData(t).netBuyPrice)}}</div></div>
+                          <div class="tc-cell"><div class="tc-cell-label">Initial SL</div><div class="tc-cell-val text-red">₹{{n2(t.initialSL)}}</div></div>
+                        </div>
+                        <div class="tc-grid">
+                          <div class="tc-cell"><div class="tc-cell-label">Abs Risk</div><div class="tc-cell-val text-red">{{fmtCur(getRData(t).absoluteRisk)}}</div></div>
+                          <div class="tc-cell"><div class="tc-cell-label">On Capital</div><div class="tc-cell-val text-red">{{getRData(t).riskCapitalPct.toFixed(2)}}%</div></div>
+                          <div class="tc-cell"><div class="tc-cell-label">SL %</div><div class="tc-cell-val text-red">{{getRData(t).initialSLPct.toFixed(2)}}%</div></div>
+                        </div>
+                      </div>
+                      <div class="tc-split-aside">
+                        <div style="text-align:center;">
+                          <div style="font-size:9px;color:#94A3B8;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">1R Unit</div>
+                          <div class="mono text-yellow" style="font-size:14px;font-weight:800;">₹{{n2(getRData(t).oneR)}}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Result — GREEN -->
+                  <div class="trade-section section-green">
+                    <div class="tc-title">Result</div>
+                    <div class="tc-split">
+                      <div class="tc-split-main">
+                        <div class="tc-grid">
+                          <div class="tc-cell"><div class="tc-cell-label">Avg Exit</div><div class="tc-cell-val text-accent">₹{{n2(t.avgExitPrice||0)}}</div></div>
+                          <div class="tc-cell"><div class="tc-cell-label">P&L</div><div class="tc-cell-val" :class="colorClass(t.pnl||0)">{{pnlSign(t.pnl||0)}}{{fmtCur(t.pnl||0)}}</div></div>
+                          <div class="tc-cell"><div class="tc-cell-label">P&L %</div><div class="tc-cell-val" :class="colorClass(t.pnlPct||0)">{{pnlSign(t.pnlPct||0)}}{{Math.abs(Number(t.pnlPct||0)*100).toFixed(2)}}%</div></div>
+                        </div>
+                        <div class="tc-grid">
+                          <div class="tc-cell"><div class="tc-cell-label">Duration</div><div class="tc-cell-val">{{t.exitDate && t.buyDate ? Math.max(1, Math.round((new Date(t.exitDate+'T00:00:00') - new Date(t.buyDate+'T00:00:00'))/(86400000))) + 'd' : '—'}}</div></div>
+                          <div class="tc-cell"><div class="tc-cell-label">Charges</div><div class="tc-cell-val text-yellow">{{fmtCur(getTotalCharges(t))}}</div></div>
+                          <div class="tc-cell"><div class="tc-cell-label">%ROCE</div><div class="tc-cell-val" :class="colorClass(t.rocePct||0)">{{pnlSign(t.rocePct||0)}}{{Math.abs(Number(t.rocePct||0)*100).toFixed(2)}}%</div></div>
+                        </div>
+                      </div>
+                      <div class="tc-split-aside">
+                        <div style="text-align:center;">
+                          <div style="font-size:9px;color:#94A3B8;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Final R</div>
+                          <div class="mono" :class="colorClass(getRData(t).realizedR)" style="font-size:14px;font-weight:800;">{{fmtR(getRData(t).realizedR)}}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Exit Legs — ORANGE -->
+                  <div class="trade-section section-orange" style="overflow:hidden;">
+                    <div class="tc-title">Exit Legs</div>
+                    <template v-if="getRData(t).legDetails.length">
+                      <div v-for="(l,i) in getRData(t).legDetails" :key="i" class="exit-leg-row">
+                        <span class="exit-leg-x">X{{i+1}}</span>
+                        <span class="exit-leg-qty">{{l.qty}} @ ₹{{n2(l.price)}}</span>
+                        <span class="exit-leg-date">{{fmtLocalDate(l.date)}} {{fmtTime(l.time)}}</span>
+                        <span class="exit-leg-r" :class="colorClass(l.legR)">{{fmtR(l.legR)}}</span>
+                        <span class="exit-leg-pnl" :class="colorClass(l.legPnl)">{{pnlSign(l.legPnl)}}{{fmtCur(l.legPnl)}}</span>
+                      </div>
+                    </template>
+                    <template v-else>
+                      <div class="d-flex align-center ga-2" style="font-size:12px;padding:2px 4px;">
+                        <span style="color:#CBD5E1;">₹{{n2(t.avgExitPrice||0)}}</span>
+                        <span class="mono font-weight-bold" :class="colorClass(getRData(t).realizedR)">{{fmtR(getRData(t).realizedR)}}</span>
+                        <span class="mono font-weight-bold" :class="colorClass(t.pnl||0)">{{pnlSign(t.pnl||0)}}{{fmtCur(t.pnl||0)}}</span>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+              </v-card>
+            </div>
+            </template>
+
+            <!-- TRADES TABLE VIEW -->
+            <template v-else>
+              <div class="trades-table-wrap">
+                <table class="trades-table">
+                  <thead>
+                    <tr>
+                      <th>Symbol</th>
+                      <th>Setup</th>
+                      <th>Entry Date/Time</th>
+                      <th class="ta-right">Avg Buy Price</th>
+                      <th class="ta-right">Cur. Invested</th>
+                      <th class="ta-right">Capital</th>
+                      <th class="ta-right">Cur. Allocation %</th>
+                      <th>Exit Date/Time</th>
+                      <th class="ta-right">Avg Sell/Exit Price</th>
+                      <th class="ta-right">Overall P&L</th>
+                      <th class="ta-right">Duration</th>
+                      <th class="ta-right">ROCE %</th>
+                      <th class="ta-right">R Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="row in tradeTableRows" :key="row.id" :class="{'trades-table-selected': selectedTradeId===row.id}"
+                      @click="toggleSelectTrade(row.raw)" @contextmenu.prevent="openContextMenu($event,row.raw)">
+                      <td>
+                        <span class="tt-symbol">{{row.symbol}}</span>
+                        <v-chip size="x-small" variant="flat" class="ml-2" :color="row.status==='Open'?(row.hasPartial?'warning':'primary'):'grey'" style="font-weight:700;min-width:0;padding:0 6px;">{{row.status==='Open'?(row.hasPartial?'P':'O'):'C'}}</v-chip>
+                      </td>
+                      <td>{{row.setup||'—'}}</td>
+                      <td class="mono">{{row.entryDateTime}}</td>
+                      <td class="ta-right mono">₹{{n2(row.avgBuyPrice)}}</td>
+                      <td class="ta-right mono">{{row.invested !== null ? fmtCur(row.invested) : '—'}}</td>
+                      <td class="ta-right mono">{{fmtCur(row.tradeCapital)}}</td>
+                      <td class="ta-right mono">{{row.allocationPct !== null ? row.allocationPct.toFixed(2)+'%' : '—'}}</td>
+                      <td class="mono">{{row.exitDateTime || '—'}}</td>
+                      <td class="ta-right mono">{{row.avgExitPrice!==null ? '₹'+n2(row.avgExitPrice) : '—'}}</td>
+                      <td class="ta-right mono" :class="row.pnl!==null?colorClass(row.pnl):''">{{row.pnl!==null ? pnlSign(row.pnl)+fmtCur(row.pnl) : '—'}}</td>
+                      <td class="ta-right mono">{{row.duration!==null ? row.duration+'d' : '—'}}</td>
+                      <td class="ta-right mono" :class="row.rocePct!==null?colorClass(row.rocePct):''">{{row.rocePct!==null ? pnlSign(row.rocePct)+Math.abs(row.rocePct*100).toFixed(2)+'%' : '—'}}</td>
+                      <td class="ta-right mono" :class="row.rValue!==null?colorClass(row.rValue):''">{{row.rValue!==null ? fmtR(row.rValue) : '—'}}</td>
+                    </tr>
+                    <tr v-if="!tradeTableRows.length">
+                      <td colspan="13" class="text-center" style="color:#94A3B8;padding:20px;">No trades yet.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </template>
+
+            <!-- Context Menu -->
+            <div v-if="ctxMenu" class="ctx-menu" :style="{left:ctxX+'px',top:ctxY+'px'}" @click="ctxMenu=false">
+              <div class="ctx-item" @click="openViewDialog(ctxTrade)" style="color:#60A5FA;">
+                <v-icon size="16" class="mr-2">mdi-eye</v-icon>View Trade
+              </div>
+              <div class="ctx-item" @click="openEditDialog(ctxTrade)">
+                <v-icon size="16" class="mr-2">mdi-pencil</v-icon>Edit Trade
+              </div>
+              <div v-if="ctxTrade && ctxTrade.status==='Open'" style="border-top:1px solid #334155;margin:4px 0;"></div>
+              <div v-if="ctxTrade && ctxTrade.status==='Open'" class="ctx-item" @click="openExitDialog(ctxTrade)" style="color:#EF4444;">
+                <v-icon size="16" class="mr-2">mdi-exit-run</v-icon>Exit Trade
+              </div>
+            </div>
+            <div v-if="ctxMenu" class="ctx-overlay" @click="ctxMenu=false" @contextmenu.prevent="ctxMenu=false"></div>
+
+            <!-- Pagination -->
+            <div v-if="totalPages > 1" class="d-flex justify-center align-center ga-3 mt-4">
+              <v-btn size="small" variant="outlined" :disabled="page<=1" @click="page--" prepend-icon="mdi-chevron-left">Prev</v-btn>
+              <span class="mono text-body-2" style="color:#94A3B8;font-weight:600;">Page {{page}} of {{totalPages}} · {{filteredTrades.length}} trades</span>
+              <v-btn size="small" variant="outlined" :disabled="page>=totalPages" @click="page++" append-icon="mdi-chevron-right">Next</v-btn>
+            </div>
+          </v-container>
+        </v-tabs-window-item>
+
+        <!-- ===== ACCOUNT TAB ===== -->
+        <v-tabs-window-item value="account">
+          <v-container fluid style="max-width:700px;">
+            <!-- Capital display -->
+            <v-card color="#1E293B" class="text-center pa-8 mb-4" style="border:1px solid #334155;border-radius:16px;">
+              <div class="text-overline" style="color:#64748B;font-size:12px!important;font-weight:700;letter-spacing:2px;">Current Capital</div>
+              <div class="mono text-h3 font-weight-bold mt-2" style="letter-spacing:-1px;">{{fmtCur(capital)}}</div>
+              <div v-if="invested>0" class="text-caption mt-2" style="color:#94A3B8;">
+                {{investedPct.toFixed(1)}}% invested · ₹{{Number(invested).toLocaleString('en-IN')}} deployed
+              </div>
+              <div v-else class="text-caption mt-2" style="color:#94A3B8;">No capital deployed</div>
+            </v-card>
+
+            <!-- Update Capital -->
+            <v-card color="#1E293B" class="pa-4 mb-4" style="border:1px solid #334155;border-radius:14px;">
+              <v-card-title class="pb-3" style="border-bottom:1px solid rgba(51,65,85,0.6);">Update Capital</v-card-title>
+              <v-card-text class="pt-4">
+                <v-text-field v-model="capAmount" label="Amount (₹)" variant="outlined" density="compact"
+                  prefix="₹" class="mono" hide-details></v-text-field>
+                <v-btn-toggle v-model="capStatus" mandatory class="mt-3" density="compact" variant="outlined" divided>
+                  <v-btn value="Added" color="success" size="small">+ Added</v-btn>
+                  <v-btn value="Withdrawn" color="error" size="small">− Withdrawn</v-btn>
+                </v-btn-toggle>
+                <v-text-field v-model="capDate" label="Date" type="date" variant="outlined" density="compact"
+                  class="mt-3" :max="todayStr" hide-details></v-text-field>
+                <v-btn :color="capStatus==='Added'?'success':'error'" block class="mt-4" @click="submitCapital" :loading="capSubmitting" :disabled="!connected || capSubmitting">
+                  {{capStatus==='Added'?'Add Capital':'Withdraw Capital'}}
+                </v-btn>
+              </v-card-text>
+            </v-card>
+
+            <!-- Recent Transactions -->
+            <v-card color="#1E293B" class="pa-4" style="border:1px solid #334155;border-radius:14px;">
+              <v-card-title class="pb-3" style="border-bottom:1px solid rgba(51,65,85,0.6);">Recent Transactions</v-card-title>
+              <v-card-text class="pt-3">
+                <div v-if="!transactions.length" class="text-center pa-4" style="color:#94A3B8;font-size:12px;">No transactions yet</div>
+                <div v-for="tx in transactions.slice().reverse().slice(0,20)" :key="tx.id"
+                  class="d-flex justify-space-between align-center pa-3 mb-2" style="background:#1E293B;border:1px solid #334155;border-radius:10px;">
+                  <div class="d-flex align-center ga-2">
+                    <v-avatar size="28" :color="tx.type==='Added'?'rgba(16,185,129,0.1)':'rgba(239,68,68,0.1)'">
+                      <span style="font-size:12px;">{{tx.type==='Added'?'↑':'↓'}}</span>
+                    </v-avatar>
+                    <div>
+                      <div class="text-body-2 font-weight-medium">{{tx.type}}</div>
+                      <div class="text-caption" style="color:#94A3B8;">{{tx.date}} · {{tx.time}}</div>
+                    </div>
+                  </div>
+                  <span class="mono font-weight-medium" :class="tx.type==='Added'?'text-green':'text-red'">
+                    {{tx.type==='Added'?'+':'−'}}₹{{Number(tx.amount).toLocaleString('en-IN',{minimumFractionDigits:2})}}
+                  </span>
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-container>
+        </v-tabs-window-item>
+
+        <!-- ===== ANALYTICS TAB ===== -->
+        <v-tabs-window-item value="analytics">
+          <v-container fluid>
+
+            <div v-if="!closedTradesSorted.length" class="text-center pa-10" style="color:#94A3B8;">
+              <v-icon size="64" color="grey" style="opacity:0.3;">mdi-chart-bar</v-icon>
+              <div class="text-h6 mt-4 font-weight-bold" style="color:#94A3B8;">Not enough data yet</div>
+              <div class="text-body-2 mt-2" style="color:#64748B;max-width:400px;margin:0 auto;">Close a few trades and this tab fills up with your equity curve, win rate, setup edge, and risk analytics.</div>
+            </div>
+
+            <template v-else>
+
+              <!-- SUMMARY DASHBOARD -->
+              <div class="aj-dash-card">
+                <div class="aj-dash-header"><v-icon size="18" color="#60A5FA">mdi-view-dashboard</v-icon> Trade Journal Analytics Dashboard</div>
+                <div class="aj-dash-row">
+                  <div class="aj-dash-cell"><div class="lbl">Total Trades</div><div class="val">{{dashboardSummary.count}}</div></div>
+                  <div class="aj-dash-cell"><div class="lbl">Win Rate</div><div class="val">{{dashboardSummary.winRate.toFixed(1)}}%</div></div>
+                  <div class="aj-dash-cell"><div class="lbl">Total Net P/L</div><div class="val" :class="colorClass(dashboardSummary.totalPnl)">{{pnlSign(dashboardSummary.totalPnl)}}{{fmtCur(dashboardSummary.totalPnl)}}</div></div>
+                  <div class="aj-dash-cell"><div class="lbl">Profit Factor</div><div class="val">{{isFinite(dashboardSummary.profitFactor)?dashboardSummary.profitFactor.toFixed(2)+'x':'∞'}}</div></div>
+                  <div class="aj-dash-cell"><div class="lbl">Avg Winner</div><div class="val text-green">{{fmtCur(dashboardSummary.avgWinner)}}</div></div>
+                  <div class="aj-dash-cell"><div class="lbl">Avg Loser</div><div class="val text-red">{{pnlSign(dashboardSummary.avgLoser)}}{{fmtCur(dashboardSummary.avgLoser)}}</div></div>
+                  <div class="aj-dash-cell"><div class="lbl">Expectancy</div><div class="val" :class="colorClass(dashboardSummary.expectancy)">{{pnlSign(dashboardSummary.expectancy)}}{{fmtCur(dashboardSummary.expectancy)}}</div></div>
+                  <div class="aj-dash-cell"><div class="lbl">Avg RRR</div><div class="val" :class="colorClass(analyticsCore.avgR)">{{fmtR(analyticsCore.avgR)}}</div></div>
+                  <div class="aj-dash-cell"><div class="lbl">Avg Hold Days</div><div class="val">{{dashboardSummary.avgHoldDays.toFixed(1)}}</div></div>
+                </div>
+              </div>
+
+              <!-- CORE PERFORMANCE -->
+              <v-card color="#1E293B" class="mb-4 pa-4" style="border:2px solid #475569;border-radius:16px;">
+                <div class="analytics-card-header"><v-icon size="16" color="#60A5FA">mdi-chart-line</v-icon> Core Performance</div>
+                <div class="analytics-stat-grid">
+                  <div class="pv-stack"><span class="pv-label">Win Rate</span><span class="pv-val mono">{{analyticsCore.winRate.toFixed(1)}}% <span style="color:#64748B;font-weight:400;font-size:11px;">({{analyticsCore.wins}}W / {{analyticsCore.losses}}L)</span></span></div>
+                  <div class="pv-stack"><span class="pv-label">Expectancy / Trade</span><span class="pv-val mono" :class="colorClass(analyticsCore.expectancy)">{{pnlSign(analyticsCore.expectancy)}}{{fmtCur(analyticsCore.expectancy)}}</span></div>
+                  <div class="pv-stack"><span class="pv-label">Avg R-Multiple</span><span class="pv-val mono" :class="colorClass(analyticsCore.avgR)">{{fmtR(analyticsCore.avgR)}}</span></div>
+                  <div class="pv-stack"><span class="pv-label">Profit Factor</span><span class="pv-val mono">{{isFinite(analyticsCore.profitFactor)?analyticsCore.profitFactor.toFixed(2):'∞'}}</span></div>
+                </div>
+                <v-row>
+                  <v-col cols="12" md="7">
+                    <div class="text-overline" style="color:#60A5FA;">Realized P&L Curve</div>
+                    <div class="analytics-chart-box-lg"><canvas ref="pnlCurveChart"></canvas></div>
+                    <div style="font-size:10px;color:#64748B;margin-top:4px;">&#9650; Capital Added &nbsp;&nbsp; &#9670; Capital Withdrawn</div>
+                  </v-col>
+                  <v-col cols="12" md="5">
+                    <div class="text-overline" style="color:#60A5FA;">P&L by Month</div>
+                    <div class="analytics-chart-box-lg"><canvas ref="monthlyPnlChart"></canvas></div>
+                  </v-col>
+                </v-row>
+              </v-card>
+
+              <!-- SETUP EDGE & MARKET CONTEXT ANALYSIS -->
+              <v-card color="#1E293B" class="mb-4 pa-4" style="border:2px solid #475569;border-radius:16px;">
+                <div class="analytics-card-header"><v-icon size="16" color="#60A5FA">mdi-target-account</v-icon> Setup Edge & Market Context Analysis</div>
+                <v-row>
+                  <v-col cols="12" md="6" v-for="g in [...edgeGroupings, ...contextGroupings].filter(g => ['By Setup','By Market Env %'].includes(g.title))" :key="g.title">
+                    <div class="text-overline mb-2" style="color:#60A5FA;">{{g.title}}</div>
+                    <div class="grp-table">
+                      <div class="grp-row head">
+                        <span class="grp-col-label">Group</span><span class="grp-col">Trades</span><span class="grp-col">Win%</span><span class="grp-col">Avg R</span><span class="grp-col">P&L</span>
+                      </div>
+                      <div v-if="!g.rows.length" class="grp-row" style="color:#64748B;">Not enough data</div>
+                      <div v-for="r in g.rows" :key="r.label" class="grp-row">
+                        <span class="grp-col-label">{{r.label}}</span>
+                        <span class="grp-col">{{r.count}}</span>
+                        <span class="grp-col">{{r.winRate.toFixed(0)}}%</span>
+                        <span class="grp-col" :class="colorClass(r.avgR)">{{fmtR(r.avgR)}}</span>
+                        <span class="grp-col" :class="colorClass(r.totalPnl)">{{pnlSign(r.totalPnl)}}{{fmtCur(r.totalPnl)}}</span>
+                      </div>
+                    </div>
+                  </v-col>
+                </v-row>
+              </v-card>
+
+              <!-- RISK & DISCIPLINE TRACKING -->
+              <v-card color="#1E293B" class="mb-4 pa-4" style="border:2px solid #475569;border-radius:16px;">
+                <div class="analytics-card-header"><v-icon size="16" color="#60A5FA">mdi-shield-alert-outline</v-icon> Risk & Discipline Tracking</div>
+                <div class="analytics-stat-grid">
+                  <div class="pv-stack"><span class="pv-label">Avg Risk of Capital</span><span class="pv-val mono">{{avgRiskPct.toFixed(2)}}%</span></div>
+                  <div class="pv-stack"><span class="pv-label">Max Drawdown</span><span class="pv-val mono text-red">{{maxDrawdownPct.toFixed(2)}}%</span></div>
+                  <div class="pv-stack"><span class="pv-label">Longest Losing Streak</span><span class="pv-val mono" :class="longestLosingStreak>=(config.Streak_Threshold||7)?'text-red':''">{{longestLosingStreak}}</span></div>
+                  <div class="pv-stack"><span class="pv-label">Threshold Crossings</span><span class="pv-val mono">{{thresholdCrossCount}}</span></div>
+                </div>
+                <v-row>
+                  <v-col cols="12" md="4">
+                    <div class="text-overline" style="color:#60A5FA;">Risk of Capital % / Trade</div>
+                    <div class="analytics-chart-box"><canvas ref="riskTrendChart"></canvas></div>
+                  </v-col>
+                  <v-col cols="12" md="4">
+                    <div class="text-overline" style="color:#60A5FA;">Drawdown</div>
+                    <div class="analytics-chart-box"><canvas ref="drawdownChart"></canvas></div>
+                  </v-col>
+                  <v-col cols="12" md="4">
+                    <div class="text-overline" style="color:#60A5FA;">Win / Loss Streaks</div>
+                    <div class="analytics-chart-box"><canvas ref="streakChart"></canvas></div>
+                    <div style="font-size:10px;color:#64748B;margin-top:4px;"><span style="color:#4ADE80;">■</span> Wins &nbsp;·&nbsp; <span style="color:#F87171;">■</span> Losses</div>
+                  </v-col>
+                </v-row>
+              </v-card>
+
+            </template>
+          </v-container>
+        </v-tabs-window-item>
+      </v-tabs-window>
+    </v-container>
+
+    <!-- Not connected state -->
+    <v-container v-if="!connected" class="text-center" style="padding:80px 16px;">
+      <v-icon size="80" color="grey" style="opacity:0.4;">mdi-lan-disconnect</v-icon>
+      <div class="text-h5 mt-5 font-weight-bold" style="color:#94A3B8;">Not Connected</div>
+      <div class="text-body-1 mt-3" style="color:#64748B;max-width:400px;margin:0 auto;">Click the gear icon to paste your Apps Script Web App URL and connect.</div>
+      <v-btn color="primary" class="mt-6" size="large" @click="showSetup=true" prepend-icon="mdi-link-variant">Setup Connection</v-btn>
+    </v-container>
+  </v-main>
+
+  <!-- ========================================== -->
+  <!-- DIALOG: NEW TRADE -->
+  <!-- ========================================== -->
+  <v-dialog v-model="newTradeDialog" max-width="700" scrollable persistent>
+    <v-card color="#1E293B">
+      <v-card-title class="d-flex justify-space-between align-center dialog-title-accent accent-blue">
+        <div class="d-flex align-center ga-3">
+          <div class="dialog-icon-badge" style="background:rgba(59,130,246,0.16);color:#60A5FA;"><v-icon size="20">mdi-plus</v-icon></div>
+          <span>New Trade</span>
+        </div>
+        <v-btn icon="mdi-close" variant="text" size="small" @click="newTradeDialog=false"></v-btn>
+      </v-card-title>
+      <v-card-text style="max-height:70vh;overflow-y:auto;">
+        <!-- Trade Info -->
+        <div class="dialog-section">
+          <div class="dialog-section-title"><v-icon size="14">mdi-information-outline</v-icon>Trade Info</div>
+          <v-row>
+            <v-col cols="4"><v-select v-model="nt.type" :items="['L','S']" label="Type" variant="outlined" density="compact" hide-details></v-select></v-col>
+            <v-col cols="4"><v-select v-model="nt.contract" :items="['MIS','CNC']" label="Contract" variant="outlined" density="compact" hide-details></v-select></v-col>
+            <v-col cols="4"><v-select v-model="nt.setup" :items="['SVRO3','SVRO15','SNB','VCP60']" label="Setup" variant="outlined" density="compact" hide-details></v-select></v-col>
+          </v-row>
+          <v-text-field v-model="nt.symbol" label="Symbol" variant="outlined" density="compact" class="mt-4"
+            placeholder="e.g. RELIANCE, TCS" style="text-transform:uppercase;" hide-details></v-text-field>
+          <v-row class="mt-2">
+            <v-col cols="6"><v-select v-model="nt.lots" :items="[1,2,3,4,5,6,7,8,9,10]" label="Lots" variant="outlined" density="compact" hide-details></v-select></v-col>
+            <v-col cols="6"><v-text-field v-model="nt.lotSize" label="Lot Size" variant="outlined" density="compact" class="mono" hide-details></v-text-field></v-col>
+          </v-row>
+        </div>
+
+        <!-- Timing -->
+        <div class="dialog-section">
+          <div class="dialog-section-title"><v-icon size="14">mdi-clock-outline</v-icon>Timing</div>
+          <v-row>
+            <v-col cols="6"><v-text-field v-model="nt.buyDate" label="Buy Date" type="date" variant="outlined" density="compact" :max="todayStr" hide-details></v-text-field></v-col>
+            <v-col cols="6"><v-text-field v-model="nt.buyTime" label="Buy Time" type="time" variant="outlined" density="compact" hide-details></v-text-field></v-col>
+          </v-row>
+        </div>
+
+        <!-- Price & SL -->
+        <div class="dialog-section">
+          <div class="dialog-section-title"><v-icon size="14">mdi-shield-alert-outline</v-icon>Price & Stop Loss</div>
+          <v-row>
+            <v-col cols="6"><v-text-field v-model="nt.buyPrice" label="Buy Price (₹)" variant="outlined" density="compact" prefix="₹" class="mono" hide-details></v-text-field></v-col>
+            <v-col cols="6"><v-text-field v-model="nt.initialSL" label="Initial SL (₹)" variant="outlined" density="compact" prefix="₹" class="mono" hide-details></v-text-field></v-col>
+          </v-row>
+
+          <!-- Live Preview -->
+          <div v-if="ntPreview.show" class="preview-box mt-4">
+            <div class="pv-row"><span class="tc-label">Invested Amount</span><span class="mono font-weight-medium">{{fmtCur(ntPreview.inv)}}</span></div>
+            <div class="pv-row"><span class="tc-label">Position Size</span><span class="mono font-weight-medium">{{ntPreview.pos.toFixed(2)}}%</span></div>
+            <div class="pv-row"><span class="tc-label">SL %</span><span class="mono font-weight-medium text-red">{{ntPreview.slp.toFixed(2)}}%</span></div>
+            <div class="pv-row"><span class="tc-label">Risk of Capital</span><span class="mono font-weight-medium text-red">{{ntPreview.risk.toFixed(2)}}%</span></div>
+            <v-divider class="my-2"></v-divider>
+            <div class="pv-row"><span class="tc-label">Brokerage</span><span class="mono font-weight-medium">{{fmtCur(ntPreview.brokerage)}}</span></div>
+            <div class="pv-row"><span class="tc-label">STT</span><span class="mono font-weight-medium">{{fmtCur(ntPreview.stt)}}</span></div>
+            <div class="pv-row"><span class="tc-label">Total Charges</span><span class="mono font-weight-medium text-yellow">{{fmtCur(ntPreview.totalCharges)}}</span></div>
+            <div class="pv-row"><span class="tc-label">Net Buy Price</span><span class="mono font-weight-medium text-accent">₹{{n2(ntPreview.netPrice)}}</span></div>
+          </div>
+        </div>
+
+        <!-- Market Context -->
+        <div class="dialog-section">
+          <div class="dialog-section-title"><v-icon size="14">mdi-chart-line</v-icon>Market Context</div>
+          <v-text-field v-model="nt.marketEnv" label="Market Env (Index % from 21 SMA)" variant="outlined" density="compact" suffix="%" class="mono" hide-details></v-text-field>
+          <v-row class="mt-2">
+            <v-col cols="6"><v-text-field v-model="nt.rvol" label="RVol at Entry" variant="outlined" density="compact" suffix="%" class="mono" hide-details></v-text-field></v-col>
+            <v-col cols="6"><v-text-field v-model="nt.adRatio" label="Pre Market A/D Ratio" variant="outlined" density="compact" class="mono" hide-details></v-text-field></v-col>
+          </v-row>
+        </div>
+
+        <!-- Deep Dive -->
+        <div class="dialog-section">
+          <div class="dialog-section-title"><v-icon size="14">mdi-radar</v-icon>Deep Dive</div>
+          <v-row>
+            <v-col cols="6"><v-text-field v-model="nt.causeMove" label="Cause % Move" variant="outlined" density="compact" suffix="%" class="mono" hide-details></v-text-field></v-col>
+            <v-col cols="6"><v-text-field v-model="nt.consolMove" label="Consolidation % Move" variant="outlined" density="compact" suffix="%" class="mono" hide-details></v-text-field></v-col>
+          </v-row>
+          <v-row class="mt-1">
+            <v-col cols="6"><v-select v-model="nt.maUndercut" :items="['','10MA','21MA','50MA']" label="MA Undercut" variant="outlined" density="compact" hide-details></v-select></v-col>
+            <v-col cols="6"><v-text-field v-model="nt.lfRise" label="LF Rise" variant="outlined" density="compact" suffix="%" class="mono" hide-details></v-text-field></v-col>
+          </v-row>
+        </div>
+
+        <!-- Chart & Notes -->
+        <div class="dialog-section">
+          <div class="dialog-section-title"><v-icon size="14">mdi-image-multiple-outline</v-icon>Entry Charts & Notes</div>
+          <v-row>
+            <v-col cols="12" md="4">
+              <v-file-input v-model="nt.chartFileDaily" label="Daily Chart" variant="outlined" density="compact"
+                accept="image/*" prepend-icon="mdi-camera" hide-details></v-file-input>
+              <v-img v-if="ntChartPreviewDaily" :src="ntChartPreviewDaily" max-height="150" class="mt-2 rounded" style="border:1px solid #334155;"></v-img>
+            </v-col>
+            <v-col cols="12" md="4">
+              <v-file-input v-model="nt.chartFileHourly" label="Hourly Chart" variant="outlined" density="compact"
+                accept="image/*" prepend-icon="mdi-camera" hide-details></v-file-input>
+              <v-img v-if="ntChartPreviewHourly" :src="ntChartPreviewHourly" max-height="150" class="mt-2 rounded" style="border:1px solid #334155;"></v-img>
+            </v-col>
+            <v-col cols="12" md="4">
+              <v-file-input v-model="nt.chartFileAdditional" label="Additional Chart" variant="outlined" density="compact"
+                accept="image/*" prepend-icon="mdi-camera" hide-details></v-file-input>
+              <v-img v-if="ntChartPreviewAdditional" :src="ntChartPreviewAdditional" max-height="150" class="mt-2 rounded" style="border:1px solid #334155;"></v-img>
+            </v-col>
+          </v-row>
+          <v-textarea v-model="nt.entryNotes" label="Entry Notes (optional)" variant="outlined" density="compact"
+            rows="3" placeholder="Why are you taking this trade?" hide-details class="mt-4"></v-textarea>
+        </div>
+      </v-card-text>
+      <v-divider></v-divider>
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn variant="text" @click="newTradeDialog=false">Cancel</v-btn>
+        <v-btn color="primary" variant="flat" rounded="pill" append-icon="mdi-arrow-right" @click="submitNewTrade" :loading="ntSubmitting" :disabled="!connected || ntSubmitting">Submit Trade</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <!-- ========================================== -->
+  <!-- DIALOG: EDIT TRADE -->
+  <!-- ========================================== -->
+  <v-dialog v-model="editDialog" max-width="600" scrollable>
+    <v-card color="#1E293B">
+      <v-card-title class="d-flex justify-space-between align-center dialog-title-accent accent-blue">
+        <div class="d-flex align-center ga-3">
+          <div class="dialog-icon-badge" style="background:rgba(59,130,246,0.16);color:#60A5FA;"><v-icon size="20">mdi-pencil-outline</v-icon></div>
+          <span>Edit <span style="text-transform:uppercase;">{{et.symbol}}</span></span>
+        </div>
+        <v-btn icon="mdi-close" variant="text" size="small" @click="editDialog=false"></v-btn>
+      </v-card-title>
+      <v-card-text style="max-height:70vh;overflow-y:auto;">
+        <div class="dialog-section" style="border-color:rgba(96,165,250,0.3);background:rgba(96,165,250,0.04);">
+          <div class="dialog-section-title" style="color:#60A5FA;"><v-icon size="14" color="#60A5FA">mdi-tune-variant</v-icon>Trade Parameters</div>
+          <v-row>
+            <v-col cols="4"><v-text-field v-model="et.entryPrice" label="Entry Price (₹)" variant="outlined" density="compact" prefix="₹" class="mono" hide-details type="number"></v-text-field></v-col>
+            <v-col cols="4"><v-text-field v-model="et.lots" label="Lots" variant="outlined" density="compact" class="mono" hide-details type="number"></v-text-field></v-col>
+            <v-col cols="4"><v-text-field v-model="et.lotSize" label="Lot Size" variant="outlined" density="compact" class="mono" hide-details type="number"></v-text-field></v-col>
+          </v-row>
+          <v-row class="mt-1">
+            <v-col cols="12">
+              <div style="font-size:12px;color:#94A3B8;margin-top:4px;">
+                Total Qty: <span class="mono" style="color:#CBD5E1;font-weight:600;">{{(parseFloat(et.lots)||0) * (parseFloat(et.lotSize)||0)}}</span>
+                &nbsp;·&nbsp; Invested: <span class="mono" style="color:#CBD5E1;font-weight:600;">₹{{((parseFloat(et.lots)||0) * (parseFloat(et.lotSize)||0) * (parseFloat(et.entryPrice)||0)).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}}</span>
+              </div>
+            </v-col>
+          </v-row>
+        </div>
+
+        <div class="dialog-section">
+          <div class="dialog-section-title"><v-icon size="14">mdi-chart-line</v-icon>Market Context</div>
+          <v-text-field v-model="et.marketEnv" label="Market Env (Index % from 21 SMA)" variant="outlined" density="compact" suffix="%" class="mono" hide-details></v-text-field>
+          <v-row class="mt-2">
+            <v-col cols="6"><v-text-field v-model="et.rvol" label="RVol at Entry" variant="outlined" density="compact" suffix="%" class="mono" hide-details></v-text-field></v-col>
+            <v-col cols="6"><v-text-field v-model="et.adRatio" label="Pre-Market A/D Ratio" variant="outlined" density="compact" class="mono" hide-details></v-text-field></v-col>
+          </v-row>
+        </div>
+
+        <div class="dialog-section">
+          <div class="dialog-section-title"><v-icon size="14">mdi-radar</v-icon>Deep Dive</div>
+          <v-row>
+            <v-col cols="6"><v-text-field v-model="et.causeMove" label="Cause % Move" variant="outlined" density="compact" suffix="%" class="mono" hide-details></v-text-field></v-col>
+            <v-col cols="6"><v-text-field v-model="et.consolMove" label="Consolidation % Move" variant="outlined" density="compact" suffix="%" class="mono" hide-details></v-text-field></v-col>
+          </v-row>
+          <v-row class="mt-1">
+            <v-col cols="6"><v-select v-model="et.maUndercut" :items="['','10MA','21MA','50MA']" label="MA Undercut" variant="outlined" density="compact" hide-details></v-select></v-col>
+            <v-col cols="6"><v-text-field v-model="et.lfRise" label="LF Rise" variant="outlined" density="compact" suffix="%" class="mono" hide-details></v-text-field></v-col>
+          </v-row>
+        </div>
+
+        <div class="dialog-section">
+          <div class="dialog-section-title"><v-icon size="14">mdi-image-multiple-outline</v-icon>Entry Charts & Notes</div>
+          <v-row>
+            <v-col cols="12" md="4">
+              <div style="font-size:12px;color:#94A3B8;font-weight:600;margin-bottom:4px;">Daily Chart</div>
+              <v-img v-if="et.entryChartUrl" :src="driveImg(et.entryChartUrl)" max-height="120" class="mb-2 rounded" style="border:1px solid #334155;"></v-img>
+              <v-file-input v-model="et.chartFileDaily" :label="et.entryChartUrl?'Replace':'Add'" variant="outlined" density="compact"
+                accept="image/*" prepend-icon="mdi-camera" hide-details></v-file-input>
+            </v-col>
+            <v-col cols="12" md="4">
+              <div style="font-size:12px;color:#94A3B8;font-weight:600;margin-bottom:4px;">Hourly Chart</div>
+              <v-img v-if="et.entryChartUrl2" :src="driveImg(et.entryChartUrl2)" max-height="120" class="mb-2 rounded" style="border:1px solid #334155;"></v-img>
+              <v-file-input v-model="et.chartFileHourly" :label="et.entryChartUrl2?'Replace':'Add'" variant="outlined" density="compact"
+                accept="image/*" prepend-icon="mdi-camera" hide-details></v-file-input>
+            </v-col>
+            <v-col cols="12" md="4">
+              <div style="font-size:12px;color:#94A3B8;font-weight:600;margin-bottom:4px;">Additional Chart</div>
+              <v-img v-if="et.entryChartUrl3" :src="driveImg(et.entryChartUrl3)" max-height="120" class="mb-2 rounded" style="border:1px solid #334155;"></v-img>
+              <v-file-input v-model="et.chartFileAdditional" :label="et.entryChartUrl3?'Replace':'Add'" variant="outlined" density="compact"
+                accept="image/*" prepend-icon="mdi-camera" hide-details></v-file-input>
+            </v-col>
+          </v-row>
+          <v-textarea v-model="et.entryNotes" label="Entry Notes" variant="outlined" density="compact" rows="3" hide-details class="mt-4"></v-textarea>
+        </div>
+
+        <div v-if="et.exitLegs.length" class="dialog-section" style="border-color:rgba(251,146,60,0.3);background:rgba(251,146,60,0.04);">
+          <div class="dialog-section-title" style="color:#FB923C;"><v-icon size="14" color="#FB923C">mdi-arrow-down-box-outline</v-icon>Exit Legs</div>
+          <div v-for="(leg,i) in et.exitLegs" :key="i" class="pa-3 mb-3" style="background:#0F172A;border:1px solid #334155;border-radius:8px;">
+            <div class="d-flex align-center ga-2 mb-2">
+              <v-avatar size="24" color="rgba(239,68,68,0.1)"><span style="font-size:10px;">X{{i+1}}</span></v-avatar>
+              <span style="font-size:11px;color:#94A3B8;">{{fmtLocalDate(leg.date)}} {{fmtTime(leg.time)}}</span>
+            </div>
+            <v-row dense>
+              <v-col cols="6"><v-text-field v-model="leg.price" label="Exit Price (₹)" variant="outlined" density="compact" prefix="₹" class="mono" hide-details type="number"></v-text-field></v-col>
+              <v-col cols="6"><v-text-field v-model="leg.qty" label="Exit Qty" variant="outlined" density="compact" class="mono" hide-details type="number"></v-text-field></v-col>
+            </v-row>
+            <v-img v-if="leg.chartUrl" :src="driveImg(leg.chartUrl)" max-height="120" class="mb-2 mt-2 rounded" style="border:1px solid #334155;"></v-img>
+            <v-file-input v-model="leg.chartFile" :label="leg.chartUrl?'Replace Exit Chart':'Add Exit Chart'" variant="outlined" density="compact"
+              accept="image/*" prepend-icon="mdi-camera" hide-details class="mt-2"></v-file-input>
+            <v-textarea v-model="leg.exitNotes" label="Exit Notes" variant="outlined" density="compact" rows="2" hide-details class="mt-3"></v-textarea>
+          </div>
+        </div>
+      </v-card-text>
+      <v-divider></v-divider>
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn variant="text" @click="editDialog=false">Cancel</v-btn>
+        <v-btn color="primary" variant="flat" rounded="pill" prepend-icon="mdi-content-save-outline" @click="saveEdit" :loading="etSubmitting" :disabled="!connected || etSubmitting">Save Changes</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <!-- ========================================== -->
+  <!-- DIALOG: EXIT TRADE -->
+  <!-- ========================================== -->
+  <v-dialog v-model="exitDialog" max-width="600" scrollable persistent>
+    <v-card color="#1E293B">
+      <v-card-title class="d-flex justify-space-between align-center dialog-title-accent accent-red" style="color:#F87171;">
+        <div class="d-flex align-center ga-3">
+          <div class="dialog-icon-badge" style="background:rgba(239,68,68,0.16);color:#F87171;"><v-icon size="20">mdi-logout-variant</v-icon></div>
+          <span>Exit <span style="text-transform:uppercase;">{{ex.symbol}}</span></span>
+        </div>
+        <v-btn icon="mdi-close" variant="text" size="small" @click="exitDialog=false"></v-btn>
+      </v-card-title>
+      <v-card-text style="max-height:70vh;overflow-y:auto;">
+        <!-- Trade info summary -->
+        <div class="dialog-section" style="border-color:rgba(59,130,246,0.3);background:rgba(59,130,246,0.04);">
+          <div class="dialog-section-title" style="color:#60A5FA;"><v-icon size="14" color="#60A5FA">mdi-crosshairs-gps</v-icon>Position Summary</div>
+          <div class="pv-row"><span class="tc-label">Remaining Qty</span><span class="mono font-weight-medium text-accent">{{ex.remQty}}</span></div>
+          <div class="pv-row"><span class="tc-label">Net Buy Price</span><span class="mono font-weight-medium text-accent">{{fmtCur(ex.netBuy)}}</span></div>
+          <v-row class="mt-2">
+            <v-col cols="6"><v-select v-model="ex.contract" :items="['MIS','CNC']" label="Contract Type" variant="outlined" density="compact" hide-details hint="Change if exiting same day"></v-select></v-col>
+          </v-row>
+        </div>
+
+        <!-- Exit details -->
+        <div class="dialog-section">
+          <div class="dialog-section-title"><v-icon size="14">mdi-logout-variant</v-icon>Exit Details</div>
+          <v-row>
+            <v-col cols="6"><v-text-field v-model="ex.exitDate" label="Exit Date" type="date" variant="outlined" density="compact" :max="todayStr" hide-details></v-text-field></v-col>
+            <v-col cols="6"><v-text-field v-model="ex.exitTime" label="Exit Time" type="time" variant="outlined" density="compact" hide-details></v-text-field></v-col>
+          </v-row>
+          <v-row class="mt-1">
+            <v-col cols="6"><v-text-field v-model="ex.exitPrice" label="Exit Price (₹)" variant="outlined" density="compact" prefix="₹" class="mono" hide-details></v-text-field></v-col>
+            <v-col cols="6"><v-text-field v-model="ex.exitQty" label="Exit Quantity" variant="outlined" density="compact" class="mono" :placeholder="'Max: '+ex.remQty" hide-details></v-text-field></v-col>
+          </v-row>
+
+          <!-- Exit preview -->
+          <div v-if="exPreview.show" class="preview-box mt-4">
+            <div class="pv-row"><span class="tc-label">Exit Amount</span><span class="mono font-weight-medium">{{fmtCur(exPreview.exitAmt)}}</span></div>
+            <div class="pv-row"><span class="tc-label">Sell Brokerage</span><span class="mono font-weight-medium">{{fmtCur(exPreview.brokerage)}}</span></div>
+            <div class="pv-row"><span class="tc-label">Sell STT</span><span class="mono font-weight-medium">{{fmtCur(exPreview.stt)}}</span></div>
+            <div class="pv-row"><span class="tc-label">Net Exit Price</span><span class="mono font-weight-medium text-accent">₹{{n2(exPreview.netPrice)}}</span></div>
+            <div class="pv-row"><span class="tc-label">Est. Net P&L (this leg)</span><span class="mono font-weight-medium" :class="colorClass(exPreview.pnl)">{{pnlSign(exPreview.pnl)}}{{fmtCur(exPreview.pnl)}}</span></div>
+            <div class="pv-row"><span class="tc-label">Remaining After</span><span class="mono font-weight-medium">{{exPreview.afterRemain === 0 ? '0 (FULLY CLOSED)' : exPreview.afterRemain + ' qty'}}</span></div>
+          </div>
+        </div>
+
+        <!-- Chart & Notes -->
+        <div class="dialog-section">
+          <div class="dialog-section-title"><v-icon size="14">mdi-image-outline</v-icon>Exit Chart & Notes</div>
+          <v-file-input v-model="ex.chartFile" label="Exit Chart Screenshot (optional)" variant="outlined" density="compact"
+            accept="image/*" prepend-icon="mdi-camera" hide-details></v-file-input>
+          <v-textarea v-model="ex.exitNotes" label="Exit Notes (optional)" variant="outlined" density="compact"
+            rows="2" placeholder="Why are you exiting? Lessons learned..." class="mt-4" hide-details></v-textarea>
+        </div>
+
+        <!-- Previous exit legs -->
+        <div v-if="ex.existingLegs && ex.existingLegs.length" class="dialog-section" style="border-color:rgba(251,146,60,0.3);background:rgba(251,146,60,0.04);">
+          <div class="dialog-section-title" style="color:#FB923C;"><v-icon size="14" color="#FB923C">mdi-history</v-icon>Previous Exit Legs</div>
+          <div v-for="(leg,i) in ex.existingLegs" :key="i" class="pa-2 mb-2" style="background:#0F172A;border:1px solid #334155;border-radius:8px;">
+            <div class="d-flex justify-space-between align-center text-caption">
+              <div class="d-flex align-center ga-2">
+                <v-avatar size="24" color="rgba(239,68,68,0.1)"><span style="font-size:10px;">X{{i+1}}</span></v-avatar>
+                <div>
+                  <div class="font-weight-medium">{{leg.qty}} qty @ ₹{{n2(leg.price)}}</div>
+                  <div style="color:#94A3B8;font-size:10px;">{{leg.date}} · {{leg.time||''}}</div>
+                </div>
+              </div>
+              <span class="mono text-red">{{fmtCur(leg.amount)}}</span>
+            </div>
+            <v-img v-if="leg.chartUrl" :src="driveImg(leg.chartUrl)" max-height="120" class="mt-2 rounded" style="border:1px solid #334155;cursor:pointer;" @click="window.open(leg.chartUrl,'_blank')"></v-img>
+            <div v-if="leg.exitNotes" class="text-caption mt-1 pa-1" style="color:#94A3B8;background:#1E293B;border-radius:3px;border-left:2px solid #3B82F6;">{{leg.exitNotes}}</div>
+          </div>
+        </div>
+      </v-card-text>
+      <v-divider></v-divider>
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn variant="text" @click="exitDialog=false">Cancel</v-btn>
+        <v-btn color="error" variant="flat" rounded="pill" prepend-icon="mdi-logout-variant" @click="submitExit" :loading="exSubmitting" :disabled="!connected || exSubmitting">Exit Position</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <!-- ========================================== -->
+  <!-- DIALOG: CHARGES CONFIG -->
+  <!-- ========================================== -->
+  <v-dialog v-model="chargesDialog" max-width="600" scrollable>
+    <v-card color="#1E293B">
+      <v-card-title class="d-flex justify-space-between align-center">
+        <span>Broker Charge Configuration</span>
+        <v-btn icon="mdi-close" variant="text" size="small" @click="chargesDialog=false"></v-btn>
+      </v-card-title>
+      <v-divider></v-divider>
+      <v-card-text>
+        <div v-for="prefix in ['MIS','CNC']" :key="prefix" class="mb-4">
+          <div class="text-overline text-accent mb-2">{{prefix}} ({{prefix==='MIS'?'Intraday':'Delivery'}})</div>
+          <v-row dense v-for="charge in ['Brok','STT']" :key="charge">
+            <v-col cols="3" class="d-flex align-center"><span class="text-caption font-weight-bold" style="color:#94A3B8;">{{charge==='Brok'?'Brokerage':'STT'}}</span></v-col>
+            <v-col cols="2"><v-text-field v-model="cfgEdit[prefix+'_'+charge+'_Buy']" label="Buy %" variant="outlined" density="compact" class="mono" hide-details></v-text-field></v-col>
+            <v-col cols="3"><v-text-field v-model="cfgEdit[prefix+'_'+charge+'_Buy_Cap']" label="Buy Cap ₹" variant="outlined" density="compact" class="mono" hide-details></v-text-field></v-col>
+            <v-col cols="2"><v-text-field v-model="cfgEdit[prefix+'_'+charge+'_Sell']" label="Sell %" variant="outlined" density="compact" class="mono" hide-details></v-text-field></v-col>
+            <v-col cols="2"><v-text-field v-model="cfgEdit[prefix+'_'+charge+'_Sell_Cap']" label="Sell Cap ₹" variant="outlined" density="compact" class="mono" hide-details></v-text-field></v-col>
+          </v-row>
+        </div>
+        <div class="text-caption" style="color:#94A3B8;">Set rate to 0 if not applicable. Set cap to 0 for no cap.</div>
+      </v-card-text>
+      <v-divider></v-divider>
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn variant="text" @click="chargesDialog=false">Cancel</v-btn>
+        <v-btn color="primary" variant="flat" @click="saveChargesConfig" :loading="cfgSaving">Save</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <!-- ========================================== -->
+  <!-- DIALOG: VIEW TRADE -->
+  <!-- ========================================== -->
+  <v-dialog v-model="viewDialog" max-width="800" scrollable>
+    <v-card color="#1E293B">
+      <v-card-title class="d-flex justify-space-between align-center dialog-title-accent" :class="vt.type==='L'?'accent-green':'accent-red'">
+        <div class="d-flex align-center ga-3">
+          <div class="dialog-icon-badge" :style="{background: vt.type==='L' ? 'rgba(74,222,128,0.16)' : 'rgba(239,68,68,0.16)', color: vt.type==='L' ? '#4ADE80' : '#F87171'}">
+            <v-icon size="20">{{vt.type==='L' ? 'mdi-arrow-up-bold' : 'mdi-arrow-down-bold'}}</v-icon>
+          </div>
+          <div class="d-flex align-center ga-2">
+            <span style="text-transform:uppercase;font-size:20px;">{{vt.symbol}}</span>
+            <v-chip :color="vt.type==='L'?'success':'error'" size="x-small" variant="flat" style="font-weight:700;">{{vt.type==='L'?'LONG':'SHORT'}}</v-chip>
+            <v-chip :color="vt.contract==='MIS'?'purple':'primary'" size="x-small" variant="flat" style="font-weight:700;">{{vt.contract}}</v-chip>
+            <v-chip :color="vt.status==='Open'?'success':'grey'" size="x-small" variant="flat" style="font-weight:700;">{{vt.status}}</v-chip>
+          </div>
+        </div>
+        <v-btn icon="mdi-close" variant="text" size="small" @click="viewDialog=false"></v-btn>
+      </v-card-title>
+      <v-card-text style="max-height:75vh;overflow-y:auto;">
+
+        <!-- Trade Info & Timing -->
+        <div class="dialog-section" style="border-color:rgba(59,130,246,0.3);background:rgba(59,130,246,0.04);">
+          <div class="dialog-section-title" style="color:#60A5FA;"><v-icon size="14" color="#60A5FA">mdi-information-outline</v-icon>Trade Info</div>
+          <v-row dense>
+            <v-col cols="4"><div class="pv-stack"><span class="pv-label">Setup</span><span class="pv-val mono">{{vt.setup||'—'}}</span></div></v-col>
+            <v-col cols="4"><div class="pv-stack"><span class="pv-label">Entry Date</span><span class="pv-val mono">{{fmtLocalDate(vt.buyDate)}} {{fmtTime(vt.buyTime)}}</span></div></v-col>
+            <v-col cols="4"><div class="pv-stack"><span class="pv-label">Exit Date</span><span class="pv-val mono">{{vt.exitDate ? fmtLocalDate(vt.exitDate) : '—'}}</span></div></v-col>
+          </v-row>
+        </div>
+
+        <!-- Price & Risk -->
+        <div class="dialog-section section-orange" style="border-width:1px;">
+          <div class="dialog-section-title" style="color:#FB923C;"><v-icon size="14" color="#FB923C">mdi-shield-alert-outline</v-icon>Price & Risk</div>
+          <v-row dense>
+            <v-col cols="3"><div class="pv-stack"><span class="pv-label">Buy Price</span><span class="pv-val mono">₹{{n2(vt.buyPrice)}}</span></div></v-col>
+            <v-col cols="3"><div class="pv-stack"><span class="pv-label">Net Buy</span><span class="pv-val mono text-accent">₹{{n2(vtR.netBuyPrice)}}</span></div></v-col>
+            <v-col cols="3"><div class="pv-stack"><span class="pv-label">Initial SL</span><span class="pv-val mono text-red">₹{{n2(vt.initialSL)}}</span></div></v-col>
+            <v-col cols="3"><div class="pv-stack"><span class="pv-label">Current SL</span><span class="pv-val mono" :class="vtR.isRiskFree?'text-green':'text-red'">₹{{n2(vtR.currentSL)}}</span></div></v-col>
+          </v-row>
+          <v-row dense class="mt-3">
+            <v-col cols="3"><div class="pv-stack"><span class="pv-label">SL %</span><span class="pv-val mono text-red">{{vtR.initialSLPct.toFixed(2)}}%</span></div></v-col>
+            <v-col cols="3"><div class="pv-stack"><span class="pv-label">Abs Risk</span><span class="pv-val mono text-red">{{fmtCur(vtR.absoluteRisk)}}</span></div></v-col>
+            <v-col cols="3"><div class="pv-stack"><span class="pv-label">On Capital</span><span class="pv-val mono text-red">{{vtR.riskCapitalPct.toFixed(2)}}%</span></div></v-col>
+            <v-col cols="3"><div class="pv-stack"><span class="pv-label">1R Unit</span><span class="pv-val mono text-yellow">₹{{n2(vtR.oneR)}}</span></div></v-col>
+          </v-row>
+        </div>
+
+        <!-- Position -->
+        <div class="dialog-section section-green" style="border-width:1px;">
+          <div class="dialog-section-title" style="color:#4ADE80;"><v-icon size="14" color="#4ADE80">mdi-chart-box-outline</v-icon>Position</div>
+          <v-row dense>
+            <v-col cols="3"><div class="pv-stack"><span class="pv-label">Total Qty</span><span class="pv-val mono">{{vtR.totalQty}}</span></div></v-col>
+            <v-col cols="3"><div class="pv-stack"><span class="pv-label">{{vt.status==='Open'?'Open Qty':'Exited Qty'}}</span><span class="pv-val mono text-accent">{{vt.status==='Open'?vtR.remQty:vtR.exitedQty}}</span></div></v-col>
+            <v-col cols="3"><div class="pv-stack"><span class="pv-label">Invested</span><span class="pv-val mono">{{fmtCur(vt.invested)}}</span></div></v-col>
+            <v-col cols="3" v-if="vt.status==='Open'">
+              <div class="pv-stack"><span class="pv-label">Risk Free?</span><span class="pv-val mono" :class="vtR.isRiskFree?'text-green':'text-red'">{{vtR.isRiskFree?'Yes':'No'}}</span></div>
+            </v-col>
+          </v-row>
+          <v-row dense class="mt-3">
+            <v-col cols="3"><div class="pv-stack"><span class="pv-label">Capital</span><span class="pv-val mono">{{fmtCur(vt.capital||capital)}}</span></div></v-col>
+            <v-col cols="3"><div class="pv-stack"><span class="pv-label">Position %</span><span class="pv-val mono">{{((vt.capital||capital)>0?(vt.invested/(vt.capital||capital)*100):0).toFixed(2)}}%</span></div></v-col>
+            <v-col cols="3"><div class="pv-stack"><span class="pv-label">On Capital</span><span class="pv-val mono text-red">{{vtR.riskCapitalPct.toFixed(2)}}%</span></div></v-col>
+          </v-row>
+        </div>
+
+        <!-- R-Multiple & P&L -->
+        <div class="dialog-section" style="border-color:rgba(251,191,36,0.3);background:rgba(251,191,36,0.04);">
+          <div class="dialog-section-title" style="color:#FBBF24;"><v-icon size="14" color="#FBBF24">mdi-chart-bell-curve-cumulative</v-icon>R-Multiple & P&L</div>
+          <template v-if="vt.status==='Open'">
+            <v-row dense>
+              <v-col cols="4"><div class="pv-stack"><span class="pv-label">Open R (at SL)</span><span class="pv-val mono" :class="colorClass(vtR.openR)" style="font-size:16px;">{{fmtR(vtR.openR)}}</span></div></v-col>
+              <v-col cols="4"><div class="pv-stack"><span class="pv-label">Open P&L (at SL)</span><span class="pv-val mono" :class="colorClass(vtR.openPnlAtSL)">{{pnlSign(vtR.openPnlAtSL)}}{{fmtCur(vtR.openPnlAtSL)}}</span></div></v-col>
+              <v-col cols="4" v-if="vtR.exitedQty>0"><div class="pv-stack"><span class="pv-label">Realized R</span><span class="pv-val mono" :class="colorClass(vtR.realizedR)">{{fmtR(vtR.realizedR)}}</span></div></v-col>
+            </v-row>
+            <v-row dense class="mt-3" v-if="vtR.exitedQty>0">
+              <v-col cols="4"><div class="pv-stack"><span class="pv-label">Realized P&L</span><span class="pv-val mono" :class="colorClass(vtR.realizedPnl)">{{pnlSign(vtR.realizedPnl)}}{{fmtCur(vtR.realizedPnl)}}</span></div></v-col>
+              <v-col cols="4"><div class="pv-stack"><span class="pv-label">Combined R</span><span class="pv-val mono" :class="colorClass(vtR.combinedR)" style="font-size:16px;">{{fmtR(vtR.combinedR)}}</span></div></v-col>
+            </v-row>
+          </template>
+          <template v-else>
+            <div class="d-flex align-center ga-4">
+              <div style="flex:1;">
+                <v-row dense>
+                  <v-col cols="4"><div class="pv-stack"><span class="pv-label">Avg Exit Price</span><span class="pv-val mono">₹{{n2(vt.avgExitPrice||0)}}</span></div></v-col>
+                  <v-col cols="4"><div class="pv-stack"><span class="pv-label">Final P&L</span><span class="pv-val mono" :class="colorClass(vt.pnl||0)">{{pnlSign(vt.pnl||0)}}{{fmtCur(vt.pnl||0)}}</span></div></v-col>
+                  <v-col cols="4"><div class="pv-stack"><span class="pv-label">P&L %</span><span class="pv-val mono" :class="colorClass(vt.pnlPct||0)">{{pnlSign(vt.pnlPct||0)}}{{Math.abs(Number(vt.pnlPct||0)*100).toFixed(2)}}%</span></div></v-col>
+                </v-row>
+              </div>
+              <div style="border-left:1px solid rgba(251,191,36,0.25);padding-left:16px;text-align:center;">
+                <div class="mono font-weight-bold" :class="colorClass(vtR.realizedR)" style="font-size:22px;">{{fmtR(vtR.realizedR)}}</div>
+                <div style="font-size:10px;color:#94A3B8;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Final R</div>
+                <v-chip v-if="vt.result" :color="(vt.pnl||0)>=0?'success':'error'" size="x-small" variant="flat" class="mt-1" style="font-weight:700;">{{vt.result}}</v-chip>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- Exit Legs -->
+        <div v-if="vtR.legDetails.length" class="dialog-section" style="border-color:rgba(251,146,60,0.3);background:rgba(251,146,60,0.04);">
+          <div class="dialog-section-title" style="color:#FB923C;"><v-icon size="14" color="#FB923C">mdi-arrow-down-box-outline</v-icon>Exit Legs</div>
+          <div v-for="(l,i) in vtR.legDetails" :key="i" class="pa-3 mb-2" style="background:#0F172A;border:1px solid #334155;border-radius:8px;">
+            <div class="d-flex justify-space-between align-center">
+              <div class="d-flex align-center ga-2">
+                <v-avatar size="24" color="rgba(239,68,68,0.1)"><span style="font-size:10px;">X{{i+1}}</span></v-avatar>
+                <span class="font-weight-medium" style="font-size:13px;">{{l.qty}} qty @ ₹{{n2(l.price)}}</span>
+                <span v-if="l.date" style="font-size:11px;color:#94A3B8;">{{fmtLocalDate(l.date)}}<template v-if="vtViewLegs[i]&&vtViewLegs[i].time">&nbsp; {{fmtTime(vtViewLegs[i].time)}}</template></span>
+              </div>
+              <span class="mono font-weight-bold" :class="colorClass(l.legR)">{{fmtR(l.legR)}} {{pnlSign(l.legPnl)}}{{fmtCur(l.legPnl)}}</span>
+            </div>
+            <div v-if="vtViewLegs[i]">
+              <v-img v-if="vtViewLegs[i].chartUrl" :src="driveImg(vtViewLegs[i].chartUrl)" max-height="200" class="mt-2 rounded" style="border:1px solid #334155;cursor:pointer;" @click="window.open(vtViewLegs[i].chartUrl,'_blank')"></v-img>
+              <div v-if="vtViewLegs[i].exitNotes" class="text-caption mt-2 pa-2" style="color:#CBD5E1;background:#1E293B;border-radius:4px;border-left:2px solid #FB923C;">{{vtViewLegs[i].exitNotes}}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Market Context -->
+        <div v-if="vt.marketEnv||vt.rvol||vt.adRatio" class="dialog-section">
+          <div class="dialog-section-title"><v-icon size="14">mdi-chart-line</v-icon>Market Context</div>
+          <v-row dense>
+            <v-col cols="4"><div class="pv-stack"><span class="pv-label">Market Env</span><span class="pv-val mono">{{vt.marketEnv||'—'}}%</span></div></v-col>
+            <v-col cols="4"><div class="pv-stack"><span class="pv-label">RVol</span><span class="pv-val mono">{{vt.rvol||'—'}}%</span></div></v-col>
+            <v-col cols="4"><div class="pv-stack"><span class="pv-label">A/D Ratio</span><span class="pv-val mono">{{vt.adRatio||'—'}}</span></div></v-col>
+          </v-row>
+        </div>
+
+        <!-- Deep Dive -->
+        <div v-if="vt.causeMove||vt.consolMove||vt.maUndercut||vt.lfRise" class="dialog-section">
+          <div class="dialog-section-title"><v-icon size="14">mdi-radar</v-icon>Deep Dive</div>
+          <v-row dense>
+            <v-col cols="3"><div class="pv-stack"><span class="pv-label">Cause %</span><span class="pv-val mono">{{vt.causeMove||'—'}}%</span></div></v-col>
+            <v-col cols="3"><div class="pv-stack"><span class="pv-label">Consol %</span><span class="pv-val mono">{{vt.consolMove||'—'}}%</span></div></v-col>
+            <v-col cols="3"><div class="pv-stack"><span class="pv-label">MA Undercut</span><span class="pv-val mono">{{vt.maUndercut||'—'}}</span></div></v-col>
+            <v-col cols="3"><div class="pv-stack"><span class="pv-label">LF Rise</span><span class="pv-val mono">{{vt.lfRise||'—'}}%</span></div></v-col>
+          </v-row>
+        </div>
+
+        <!-- Entry Charts -->
+        <div v-if="(vt.entryChartUrl && vt.entryChartUrl.trim()) || (vt.entryChartUrl2 && vt.entryChartUrl2.trim()) || (vt.entryChartUrl3 && vt.entryChartUrl3.trim())" class="dialog-section">
+          <div class="dialog-section-title"><v-icon size="14">mdi-image-multiple-outline</v-icon>Entry Charts</div>
+          <v-row>
+            <v-col v-if="vt.entryChartUrl && vt.entryChartUrl.trim()" cols="12" md="4">
+              <div style="font-size:11px;color:#94A3B8;font-weight:600;margin-bottom:4px;">Daily</div>
+              <v-img :src="driveImg(vt.entryChartUrl)" max-height="250" class="rounded" style="border:1px solid #334155;cursor:pointer;" @click="window.open(vt.entryChartUrl,'_blank')"></v-img>
+            </v-col>
+            <v-col v-if="vt.entryChartUrl2 && vt.entryChartUrl2.trim()" cols="12" md="4">
+              <div style="font-size:11px;color:#94A3B8;font-weight:600;margin-bottom:4px;">Hourly</div>
+              <v-img :src="driveImg(vt.entryChartUrl2)" max-height="250" class="rounded" style="border:1px solid #334155;cursor:pointer;" @click="window.open(vt.entryChartUrl2,'_blank')"></v-img>
+            </v-col>
+            <v-col v-if="vt.entryChartUrl3 && vt.entryChartUrl3.trim()" cols="12" md="4">
+              <div style="font-size:11px;color:#94A3B8;font-weight:600;margin-bottom:4px;">Additional</div>
+              <v-img :src="driveImg(vt.entryChartUrl3)" max-height="250" class="rounded" style="border:1px solid #334155;cursor:pointer;" @click="window.open(vt.entryChartUrl3,'_blank')"></v-img>
+            </v-col>
+          </v-row>
+        </div>
+
+        <!-- Entry Notes -->
+        <div v-if="vt.entryNotes && vt.entryNotes.trim()" class="dialog-section">
+          <div class="dialog-section-title"><v-icon size="14">mdi-note-text-outline</v-icon>Entry Notes</div>
+          <div style="color:#CBD5E1;font-size:14px;line-height:1.6;white-space:pre-wrap;">{{vt.entryNotes}}</div>
+        </div>
+
+      </v-card-text>
+      <v-divider></v-divider>
+      <v-card-actions>
+        <v-btn variant="outlined" color="grey" size="small" rounded="pill" prepend-icon="mdi-pencil-outline" @click="viewDialog=false;openEditDialog(vtRaw)">Edit Trade</v-btn>
+        <v-btn v-if="vt.status==='Open'" variant="flat" color="error" size="small" rounded="pill" prepend-icon="mdi-logout-variant" @click="viewDialog=false;openExitDialog(vtRaw)">Exit Trade</v-btn>
+        <v-spacer></v-spacer>
+        <v-btn variant="text" @click="viewDialog=false">Close</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <!-- ===== SNACKBAR ===== -->
+  <v-snackbar v-model="snackbar" :color="snackbarColor" :timeout="3000" location="bottom center">
+    {{snackbarText}}
+  </v-snackbar>
+
+</v-app>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/vue@3.5.13/dist/vue.global.prod.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vuetify@3.7.6/dist/vuetify.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+const { createApp, ref, computed, watch, reactive, onMounted, nextTick } = Vue;
+
+const app = createApp({
+  data() {
+    const now = new Date();
+    const ds = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+    const ts = now.toTimeString().slice(0,5);
+    return {
+      // Connection
+      url: localStorage.getItem('gas_url')||'',
+      connected: false,
+      connecting: false,
+      showSetup: false,
+
+      // Ribbon
+      capital:0, invested:0, investedPct:0,
+      totalRealisedPnl:0, totalPartialRealisedPnl:0, runningCapital:0,
+      realisedROCE:0, unrealisedROCE:0,
+      openPositions:0, uniqueOpen:0,
+      losingStreak:0, consecWins:0,
+      config: {
+        Streak_Threshold:7,
+        MIS_Brok_Buy:0.03, MIS_Brok_Buy_Cap:20, MIS_Brok_Sell:0.03, MIS_Brok_Sell_Cap:20,
+        MIS_STT_Buy:0, MIS_STT_Buy_Cap:0, MIS_STT_Sell:0.025, MIS_STT_Sell_Cap:0,
+        CNC_Brok_Buy:0, CNC_Brok_Buy_Cap:0, CNC_Brok_Sell:0, CNC_Brok_Sell_Cap:0,
+        CNC_STT_Buy:0.1, CNC_STT_Buy_Cap:0, CNC_STT_Sell:0.1, CNC_STT_Sell_Cap:0
+      },
+
+      // Trades
+      allTrades:[], openTrades:[], transactions:[],
+      tradeFilter:'Open', searchQuery:'', page:1, pageSize:15, tradesViewMode:'cards',
+      sortBy:'date', sortDir:'desc',
+      sortOptions:[
+        {key:'date', label:'Date (Buy)'},
+        {key:'symbol', label:'Symbol (A-Z)'},
+        {key:'risk', label:'Risk on Capital'},
+        {key:'pnl', label:'Realised P&L'},
+        {key:'pnlPct', label:'P&L %'},
+        {key:'invested', label:'Invested Amount'},
+        {key:'rMultiple', label:'R-Multiple'},
+        {key:'status', label:'Status'}
+      ],
+      loadingTrades:false,
+      exitLegsCache: {},
+
+      // Tabs
+      activeTab:'trades',
+
+      // Trade selection
+      selectedTradeId: null,
+      ctxMenu: false, ctxX: 0, ctxY: 0, ctxTrade: null,
+
+      // SL editing
+      slEditing:{}, slEditValue:'', slSaving:false,
+
+      // Snackbar
+      snackbar:false, snackbarText:'', snackbarColor:'success',
+
+      // Capital form
+      capAmount:'', capStatus:'Added', capDate:ds, capSubmitting:false,
+
+      // New Trade dialog
+      newTradeDialog:false, ntSubmitting:false,
+      nt: { type:'L', contract:'CNC', setup:'SVRO3', symbol:'', lots:1, lotSize:'',
+            buyDate:ds, buyTime:ts, buyPrice:'', initialSL:'',
+            marketEnv:'', rvol:'', adRatio:'', causeMove:'', consolMove:'', maUndercut:'', lfRise:'',
+            chartFileDaily:null, chartFileHourly:null, chartFileAdditional:null, entryNotes:'' },
+
+      // Edit dialog
+      editDialog:false, etSubmitting:false,
+      et: { tradeId:'', symbol:'', status:'', marketEnv:'', rvol:'', adRatio:'', causeMove:'', consolMove:'', maUndercut:'', lfRise:'',
+            entryNotes:'', entryChartUrl:'', entryChartUrl2:'', entryChartUrl3:'',
+            chartFileDaily:null, chartFileHourly:null, chartFileAdditional:null, exitLegs:[] },
+
+      // Exit dialog
+      exitDialog:false, exSubmitting:false,
+      ex: { tradeId:'', symbol:'', contract:'', type:'', remQty:0, netBuy:0,
+            exitDate:ds, exitTime:ts, exitPrice:'', exitQty:'', chartFile:null, exitNotes:'', existingLegs:[] },
+
+      // View dialog
+      viewDialog:false, vtRaw:null,
+      vt: { symbol:'', type:'L', contract:'CNC', status:'Open', setup:'', buyDate:'', buyTime:'', exitDate:'',
+            buyPrice:0, initialSL:0, currentSL:0, invested:0, avgExitPrice:0, pnl:0, pnlPct:0, result:'',
+            marketEnv:'', rvol:'', adRatio:'', causeMove:'', consolMove:'', maUndercut:'', lfRise:'',
+            entryChartUrl:'', entryChartUrl2:'', entryChartUrl3:'', entryNotes:'', lots:1, lotSize:1, totalQty:0, remainingQty:0, exitedQty:0, netBuyPrice:0 },
+      vtViewLegs: [],
+
+      // Charges config dialog
+      chargesDialog:false, cfgSaving:false,
+      cfgEdit: {},
+
+      // Helpers
+      todayStr: ds
+    };
+  },
+
+  computed: {
+    monthName() { return new Date().toLocaleString('en-IN',{month:'long',year:'numeric'}); },
+
+    streakBadge() {
+      const ls=this.losingStreak, th=this.config.Streak_Threshold||7, cw=this.consecWins;
+      if (ls>=th+2) return {text:'STOP TRADING', color:'error', icon:'mdi-hand-back-left'};
+      if (ls>=th) {
+        if (cw>=2) return {text:'RETURN TO FULL SIZE', color:'success', icon:'mdi-arrow-expand-up'};
+        if (cw===1) return {text:'1 more win to FULL SIZE', color:'info', icon:'mdi-trophy-outline'};
+        return {text:'CUT SIZE TO HALF', color:'warning', icon:'mdi-arrow-collapse-down'};
+      }
+      return {text:'Continue Trading', color:'success', icon:'mdi-check-circle-outline'};
+    },
+
+    filteredTrades() {
+      let list = this.tradeFilter==='All' ? [...this.allTrades] : this.allTrades.filter(t=>t.status===this.tradeFilter);
+      const q = (this.searchQuery||'').trim().toUpperCase();
+      if (q) list = list.filter(t => (t.symbol||'').toUpperCase().includes(q));
+      const dir = this.sortDir==='asc' ? 1 : -1;
+      const isAll = this.tradeFilter==='All';
+      const me = this;
+      const cmpStr = (x,y) => { const a2=''+x, b2=''+y; return a2<b2?-1:a2>b2?1:0; };
+      list.sort((a,b) => {
+        if (isAll && a.status!==b.status) return a.status==='Open'?-1:1;
+        let va, vb;
+        switch(me.sortBy) {
+          case 'date': return dir * cmpStr(a.buyDate||'', b.buyDate||'');
+          case 'symbol': return dir * cmpStr(a.symbol||'', b.symbol||'');
+          case 'risk': {
+            const ra=me.getRData(a), rb=me.getRData(b);
+            va=ra.riskCapitalPct||0; vb=rb.riskCapitalPct||0;
+            return dir * (va - vb);
+          }
+          case 'pnl': va=a.pnl||0; vb=b.pnl||0; return dir * (va - vb);
+          case 'pnlPct': va=a.pnlPct||0; vb=b.pnlPct||0; return dir * (va - vb);
+          case 'invested': va=a.invested||0; vb=b.invested||0; return dir * (va - vb);
+          case 'rMultiple': {
+            const ra=me.getRData(a), rb=me.getRData(b);
+            va = a.status==='Closed' ? ra.realizedR : ra.openR;
+            vb = b.status==='Closed' ? rb.realizedR : rb.openR;
+            return dir * (va - vb);
+          }
+          case 'status': {
+            const sv = s => s==='Open'?0:1;
+            va=sv(a.status); vb=sv(b.status);
+            if (va!==vb) return dir * (va - vb);
+            return dir * cmpStr(a.buyDate||'', b.buyDate||'');
+          }
+          default: return 0;
+        }
+      });
+      return list;
+    },
+
+    totalPages() { return Math.max(1, Math.ceil(this.filteredTrades.length / this.pageSize)); },
+
+    paginatedTrades() {
+      const start = (this.page-1)*this.pageSize;
+      return this.filteredTrades.slice(start, start+this.pageSize);
+    },
+
+    // Compact table view: one row per trade with only the essentials. Open trades
+    // with no exits yet show blank exit/pnl/duration/R columns; partially closed
+    // trades show those columns based on what has actually been booked so far
+    // (via the last recorded exit leg), not blended with the still-open portion;
+    // fully closed trades show the final backend-computed values.
+    tradeTableRows() {
+      return this.paginatedTrades.map(t => {
+        const rd = this.getRData(t);
+        const isClosed = t.status === 'Closed';
+        const hasPartial = !isClosed && rd.exitedQty > 0;
+        const lastLeg = rd.legDetails && rd.legDetails.length ? rd.legDetails[rd.legDetails.length-1] : null;
+
+        let exitDateTime = '', pnl = null, duration = null, rocePct = null, rValue = null, avgExitPrice = null;
+        const avgBuyPrice = t.buyPrice || 0; // always known — buying already happened regardless of exit status
+        // Allocation % — original invested amount (based on the trade's original qty,
+        // not the remaining open qty after partial exits) as a % of capital at the time
+        const tradeCapitalForAlloc = t.capital || this.capital;
+        const curInvested = isClosed ? null : (rd.remQty||0) * (rd.netBuyPrice||0);
+        const allocationPct = (!isClosed && tradeCapitalForAlloc > 0) ? (curInvested / tradeCapitalForAlloc * 100) : null;
+
+        if (isClosed) {
+          exitDateTime = (this.fmtLocalDate(t.exitDate) + ' ' + this.getLastExitTime(t)).trim();
+          pnl = t.pnl || 0;
+          duration = (t.exitDate && t.buyDate)
+            ? Math.max(1, Math.round((new Date(t.exitDate+'T00:00:00') - new Date(t.buyDate+'T00:00:00'))/86400000))
+            : null;
+          rocePct = t.rocePct || 0;
+          rValue = rd.realizedR;
+          avgExitPrice = t.avgExitPrice || 0;
+        } else if (hasPartial && lastLeg) {
+          exitDateTime = (this.fmtLocalDate(lastLeg.date) + ' ' + this.fmtTime(lastLeg.time)).trim();
+          pnl = rd.realizedPnl;
+          const buyDt = t.buyDate ? new Date(t.buyDate+'T00:00:00') : null;
+          const exitDt = this.combineDateTime(lastLeg.date, lastLeg.time);
+          duration = (buyDt && !isNaN(exitDt))
+            ? Math.max(1, Math.round((exitDt - buyDt)/86400000))
+            : null;
+          const tradeCapital = t.capital || this.capital;
+          rocePct = tradeCapital > 0 ? (rd.realizedPnl / tradeCapital) : 0;
+          rValue = rd.realizedR;
+          // weighted average of every exit leg booked so far (not just the last one)
+          const exitedSoFarQty = rd.legDetails.reduce((s,l)=>s+(l.qty||0), 0);
+          const exitedSoFarAmt = rd.legDetails.reduce((s,l)=>s+(l.qty||0)*(l.price||0), 0);
+          avgExitPrice = exitedSoFarQty > 0 ? exitedSoFarAmt / exitedSoFarQty : null;
+        }
+        // else: fully open, no exits yet — exitDateTime/pnl/duration/rValue/rocePct/avgExitPrice stay blank
+
+        return {
+          id: t.id, raw: t, symbol: t.symbol, status: t.status, hasPartial, setup: t.setup || '',
+          entryDateTime: (this.fmtLocalDate(t.buyDate) + ' ' + this.fmtTime(t.buyTime)).trim(),
+          avgBuyPrice, invested: isClosed ? null : (rd.remQty||0) * (rd.netBuyPrice||0), tradeCapital: t.capital || this.capital, allocationPct, exitDateTime, avgExitPrice, pnl, duration, rocePct, rValue
+        };
+      });
+    },
+
+    ntChartPreviewDaily() {
+      const f = Array.isArray(this.nt.chartFileDaily) ? this.nt.chartFileDaily[0] : this.nt.chartFileDaily;
+      return f ? URL.createObjectURL(f) : null;
+    },
+    ntChartPreviewHourly() {
+      const f = Array.isArray(this.nt.chartFileHourly) ? this.nt.chartFileHourly[0] : this.nt.chartFileHourly;
+      return f ? URL.createObjectURL(f) : null;
+    },
+    ntChartPreviewAdditional() {
+      const f = Array.isArray(this.nt.chartFileAdditional) ? this.nt.chartFileAdditional[0] : this.nt.chartFileAdditional;
+      return f ? URL.createObjectURL(f) : null;
+    },
+
+    ntPreview() {
+      const lots=parseInt(this.nt.lots)||0, ls=parseInt(this.nt.lotSize)||0;
+      const bp=parseFloat(this.nt.buyPrice)||0, sl=parseFloat(this.nt.initialSL)||0;
+      if (!lots||!ls||!bp) return {show:false};
+      const qty=lots*ls, inv=qty*bp;
+      const pos=this.capital>0?(inv/this.capital*100):0;
+      const slp=bp>0&&sl>0?(Math.abs(bp-sl)/bp*100):0;
+      const risk=this.capital>0&&sl>0?(qty*Math.abs(bp-sl))/this.capital*100:0;
+      const ch=this.calcCharges(bp,qty,this.nt.contract,'Buy');
+      return {show:true, inv, pos, slp, risk, brokerage:ch.brokerage, stt:ch.stt, totalCharges:ch.totalCharges, netPrice:ch.netPrice};
+    },
+
+    selectedTradeObj() {
+      if (!this.selectedTradeId) return null;
+      return this.allTrades.find(t => t.id === this.selectedTradeId) || null;
+    },
+
+    selectedTradeSymbol() {
+      return this.selectedTradeObj ? this.selectedTradeObj.symbol.toUpperCase() : '';
+    },
+
+    vtR() {
+      if (!this.vtRaw) return {oneR:0,initialSLPct:0,absoluteRisk:0,riskCapitalPct:0,realizedR:0,realizedPnl:0,legDetails:[],openR:0,openPnlAtSL:0,isRiskFree:false,combinedR:0,totalQty:0,remQty:0,exitedQty:0,netBuyPrice:0,currentSL:0,initialSL:0};
+      return this.getRData(this.vtRaw);
+    },
+
+    exPreview() {
+      const ep=parseFloat(this.ex.exitPrice)||0, eq=parseInt(this.ex.exitQty)||0;
+      if (!ep||!eq) return {show:false};
+      if (eq>this.ex.remQty) return {show:false};
+      const exitAmt=eq*ep;
+      const ch=this.calcCharges(ep,eq,this.ex.contract,'Sell');
+      const netBuyAmt=eq*this.ex.netBuy;
+      const netExitAmt=eq*ch.netPrice;
+      const pnl=this.ex.type==='L'?(netExitAmt-netBuyAmt):(netBuyAmt-netExitAmt);
+      return {show:true, exitAmt, brokerage:ch.brokerage, stt:ch.stt, netPrice:ch.netPrice, pnl, afterRemain:this.ex.remQty-eq};
+    },
+
+    // ==================== ANALYTICS ====================
+    closedTradesSorted() {
+      const self = this;
+      // Get the last exit leg's datetime for a trade (uses exitLegsCache)
+      function lastExitTs(t) {
+        const legs = self.exitLegsCache[t.id];
+        if (legs && legs.length) {
+          let maxTs = 0;
+          legs.forEach(l => {
+            const dt = new Date(l.date);
+            if (l.time) { if (l.time instanceof Date) { dt.setHours(l.time.getHours(), l.time.getMinutes()); } else { const p = String(l.time).split(':'); dt.setHours(parseInt(p[0])||0, parseInt(p[1])||0); } }
+            const ts = dt.getTime();
+            if (ts > maxTs) maxTs = ts;
+          });
+          if (maxTs > 0) return maxTs;
+        }
+        return new Date(t.exitDate||t.buyDate).getTime();
+      }
+      return this.allTrades
+        .filter(t => t.status === 'Closed')
+        .slice()
+        .sort((a,b) => { const d = lastExitTs(a) - lastExitTs(b); return d !== 0 ? d : (a.id||0) - (b.id||0); });
+    },
+
+    analyticsCore() {
+      const trades = this.closedTradesSorted;
+      const n = trades.length;
+      if (!n) return {count:0, wins:0, losses:0, winRate:0, expectancy:0, avgR:0, profitFactor:0};
+      let wins=0, pnlSum=0, rSum=0, grossWin=0, grossLoss=0;
+      trades.forEach(t => {
+        const pnl = t.pnl||0;
+        if (t.result==='Win') wins++;
+        pnlSum += pnl;
+        rSum += this.getRData(t).combinedR;
+        if (pnl>=0) grossWin+=pnl; else grossLoss+=Math.abs(pnl);
+      });
+      return {
+        count:n, wins, losses:n-wins,
+        winRate: wins/n*100,
+        expectancy: pnlSum/n,
+        avgR: rSum/n,
+        profitFactor: grossLoss>0 ? grossWin/grossLoss : (grossWin>0 ? Infinity : 0)
+      };
+    },
+
+    // Pure realized P&L, booked leg by leg (partial exits included, on both open
+    // and closed trades) at the moment each leg was actually exited — not tied to
+    // capital added/withdrawn, so it only moves when trading P&L is actually booked.
+    // Each point also carries runningCapital (base capital, adjusted for every
+    // deposit/withdrawal up to that moment, plus cumulative P&L up to that moment)
+    // purely for the tooltip — it does not affect where the line is plotted.
+    pnlCurveData() {
+      const events = [];
+      this.allTrades.forEach(t => {
+        const rd = this.getRData(t);
+        (rd.legDetails||[]).forEach(l => {
+          const ts = this.combineDateTime(l.date||t.exitDate||t.buyDate, l.time);
+          events.push({ts: isNaN(ts)?new Date():ts, pnl: l.legPnl||0});
+        });
+      });
+      events.sort((a,b)=>a.ts-b.ts);
+      const timeline = (this.transactions||[]).map(tx => {
+        const ts = this.combineDateTime(tx.date, tx.time);
+        return { ts: isNaN(ts)?new Date(0):ts, balance: tx.balance||0 };
+      }).sort((a,b)=>a.ts-b.ts);
+      let ti = 0, capBase = this.capital, cum = 0;
+      return events.map(e => {
+        cum += e.pnl;
+        while (ti < timeline.length && timeline[ti].ts <= e.ts) { capBase = timeline[ti].balance; ti++; }
+        return {x:e.ts, y:cum, runningCapital: capBase + cum};
+      });
+    },
+
+    // Capital deposits/withdrawals, for markers overlaid on the P&L curve (context
+    // only — they don't affect the curve's height).
+    capitalMarkers() {
+      return (this.transactions||[]).map(tx => {
+        const ts = this.combineDateTime(tx.date, tx.time);
+        return { x: isNaN(ts)?new Date():ts, type: tx.type, amount: tx.amount||0 };
+      }).sort((a,b)=>a.x-b.x);
+    },
+
+    // Account balance = capital added/withdrawn + realized P&L, combined. Used only
+    // for drawdown, where the % figure needs to be relative to actual capital at
+    // risk, not to a P&L-only series that can hover near zero.
+    accountBalanceData() {
+      const events = [];
+      (this.transactions||[]).forEach(tx => {
+        const ts = this.combineDateTime(tx.date, tx.time);
+        events.push({ts: isNaN(ts)?new Date():ts, capitalBalance: tx.balance||0, isCapital:true});
+      });
+      this.closedTradesSorted.forEach(t => {
+        const ts = new Date((t.exitDate||t.buyDate)+'T00:00:00');
+        events.push({ts, pnl: t.pnl||0, isCapital:false});
+      });
+      events.sort((a,b)=>a.ts-b.ts);
+      let capitalBalance = 0, cumPnl = 0;
+      const points = [];
+      events.forEach(e => {
+        if (e.isCapital) capitalBalance = e.capitalBalance;
+        else cumPnl += e.pnl;
+        points.push({x:e.ts, y: capitalBalance + cumPnl});
+      });
+      return points;
+    },
+
+    drawdownData() {
+      let peak = -Infinity;
+      return this.accountBalanceData.map(p => {
+        peak = Math.max(peak, p.y);
+        return {x:p.x, y: peak>0 ? ((p.y-peak)/peak*100) : 0};
+      });
+    },
+
+    maxDrawdownPct() {
+      const dd = this.drawdownData;
+      if (!dd.length) return 0;
+      return Math.min(...dd.map(p=>p.y));
+    },
+
+    monthlyPnlData() {
+      const map = {};
+      const addToMonth = (key, pnl, isWin) => {
+        if (!map[key]) map[key] = {pnl:0, count:0, wins:0};
+        map[key].pnl += pnl;
+        map[key].count += 1;
+        if (isWin) map[key].wins += 1;
+      };
+      // Bucket every trade's realised P&L by each exit leg's own exit month, for BOTH
+      // open (partially exited) and fully closed trades. Using per-leg dates uniformly
+      // (instead of dumping a closed trade's entire P&L into its final exit month) keeps
+      // already-booked months stable — a trade finally closing must not retroactively
+      // move P&L booked in earlier months into the closing month.
+      this.allTrades.forEach(t => {
+        const rd = this.getRData(t);
+        if (rd.legDetails && rd.legDetails.length) {
+          rd.legDetails.forEach(leg => {
+            if (!leg.date) return;
+            addToMonth(String(leg.date).slice(0,7), leg.legPnl||0, (leg.legPnl||0) > 0);
+          });
+        } else if (t.status !== 'Open') {
+          // Closed trade with no cached exit legs yet (e.g. exitLegsCache still loading,
+          // or a legacy trade predating Trade_Legs) — fall back to its own totals.
+          const d = t.exitDate || t.buyDate;
+          if (!d) return;
+          addToMonth(String(d).slice(0,7), t.pnl||0, t.result==='Win');
+        }
+      });
+      return Object.keys(map).sort().map(k => ({
+        month:k, pnl:map[k].pnl, count:map[k].count, wins:map[k].wins,
+        winRate: map[k].count>0 ? (map[k].wins/map[k].count*100) : 0
+      }));
+    },
+
+    edgeGroupings() {
+      const trades = this.closedTradesSorted;
+      return [
+        {title:'By Setup', rows: this.groupStats(trades, t=>t.setup||null)}
+      ];
+    },
+
+    dashboardSummary() {
+      const trades = this.closedTradesSorted;
+      const n = trades.length;
+      if (!n) return {count:0, winRate:0, totalPnl:0, profitFactor:0, avgWinner:0, avgLoser:0, expectancy:0, avgHoldDays:0};
+      let wins=0, losses=0, pnlSum=0, grossWin=0, grossLoss=0, holdSum=0, holdCount=0;
+      trades.forEach(t => {
+        const pnl = t.pnl||0;
+        pnlSum += pnl;
+        if (t.result==='Win') { wins++; grossWin+=pnl; }
+        else if (t.result==='Loss') { losses++; grossLoss+=Math.abs(pnl); }
+        if (t.buyDate && t.exitDate) {
+          const d1=new Date(t.buyDate+'T00:00:00'), d2=new Date(t.exitDate+'T00:00:00');
+          if (!isNaN(d1)&&!isNaN(d2)) { holdSum+=Math.max(0,(d2-d1)/86400000); holdCount++; }
+        }
+      });
+      return {
+        count:n, winRate: wins/n*100, totalPnl:pnlSum,
+        profitFactor: grossLoss>0 ? grossWin/grossLoss : (grossWin>0?Infinity:0),
+        avgWinner: wins>0 ? grossWin/wins : 0,
+        avgLoser: losses>0 ? -(grossLoss/losses) : 0,
+        expectancy: pnlSum/n,
+        avgHoldDays: holdCount>0 ? holdSum/holdCount : 0
+      };
+    },
+
+    contextGroupings() {
+      const trades = this.closedTradesSorted;
+      const rvolFn = this.tertiaryBucketFn(trades, t=>Number(t.rvol), v=>v.toFixed(0)+'%');
+      const adFn = this.tertiaryBucketFn(trades, t=>Number(t.adRatio), v=>v.toFixed(2));
+      const envFn = this.tertiaryBucketFn(trades, t=>Number(t.marketEnv), v=>v.toFixed(1)+'%');
+      return [
+        {title:'By RVol at Entry', rows: this.groupStats(trades, rvolFn)},
+        {title:'By Pre-Market A/D Ratio', rows: this.groupStats(trades, adFn)},
+        {title:'By Market Env %', rows: this.groupStats(trades, envFn)},
+        {title:'By MA Undercut', rows: this.groupStats(trades, t=>t.maUndercut||null)}
+      ];
+    },
+
+    riskTrendData() {
+      return this.allTrades
+        .filter(t => t.buyDate)
+        .slice()
+        .sort((a,b) => new Date(a.buyDate)-new Date(b.buyDate))
+        .map(t => ({
+          x: new Date(t.buyDate+'T00:00:00'),
+          y: this.getRData(t).riskCapitalPct||0,
+          outcome: t.status==='Open' ? 'open' : (t.result==='Win'?'win':t.result==='Loss'?'loss':'open')
+        }));
+    },
+
+    avgRiskPct() {
+      const pts = this.riskTrendData;
+      if (!pts.length) return 0;
+      return pts.reduce((s,p)=>s+p.y,0)/pts.length;
+    },
+
+    streakTimelineData() {
+      const th = this.config.Streak_Threshold||7;
+      let ls = 0;
+      return this.closedTradesSorted.map(t => {
+        ls = t.result==='Loss' ? ls+1 : 0;
+        let state='ok';
+        if (ls>=th+2) state='stop'; else if (ls>=th) state='cut';
+        return {x: new Date((t.exitDate||t.buyDate)+'T00:00:00'), y: ls, state};
+      });
+    },
+
+    // Monthly winning/losing streak data for the stacked bar chart
+    monthlyStreakData() {
+      const map = {};
+      this.closedTradesSorted.forEach(t => {
+        const d = t.exitDate || t.buyDate;
+        if (!d) return;
+        const key = String(d).slice(0,7);
+        if (!map[key]) map[key] = {wins:0, losses:0, maxLosing:0};
+        if (t.result==='Win') map[key].wins += 1;
+        else if (t.result==='Loss') map[key].losses += 1;
+      });
+      // Also track max losing streak per month
+      let ls = 0;
+      let currentMonth = null;
+      this.closedTradesSorted.forEach(t => {
+        const d = t.exitDate || t.buyDate;
+        if (!d) return;
+        const key = String(d).slice(0,7);
+        ls = t.result==='Loss' ? ls+1 : 0;
+        if (map[key] && ls > map[key].maxLosing) map[key].maxLosing = ls;
+      });
+      return Object.keys(map).sort().map(k => ({
+        month: k,
+        wins: map[k].wins,
+        losses: map[k].losses,
+        maxLosing: map[k].maxLosing
+      }));
+    },
+
+    longestLosingStreak() {
+      return this.streakTimelineData.reduce((m,p)=>Math.max(m,p.y),0);
+    },
+
+    thresholdCrossCount() {
+      return this.streakTimelineData.filter(p=>p.state!=='ok').length;
+    }
+  },
+
+  watch: {
+    tradeFilter() { this.page=1; this.selectedTradeId=null; },
+    searchQuery() { this.page=1; },
+    sortBy() { this.page=1; },
+    sortDir() { this.page=1; },
+    activeTab(val) { if (val==='analytics') this.renderAnalyticsCharts(); },
+    allTrades() { if (this.activeTab==='analytics') this.renderAnalyticsCharts(); }
+  },
+
+  methods: {
+    // ==================== API ====================
+    async gas(action, payload={}) {
+      if (!this.url) { this.toast('Connect your sheet first','error'); return null; }
+      try {
+        const r = await fetch(this.url, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify({action,...payload}) });
+        const d = await r.json();
+        if (d.error) { this.toast(d.error,'error'); return null; }
+        this.connected=true;
+        return d;
+      } catch(e) { this.connected=false; this.toast('Connection error','error'); console.error(e); return null; }
+    },
+
+    toast(msg, color='success') {
+      this.snackbarText=msg; this.snackbarColor=color; this.snackbar=true;
+    },
+
+    // ==================== CONNECTION ====================
+    async saveUrl() {
+      if (!this.url.trim()) { this.toast('Enter a URL','error'); return; }
+      this.connecting=true;
+      localStorage.setItem('gas_url', this.url);
+      this.connected=true;
+      this.showSetup=false;
+      await this.refreshAll();
+      this.connecting=false;
+      this.toast('Connected!','success');
+    },
+
+    // ==================== REFRESH ====================
+    async refreshAll() {
+      this.loadingTrades=true;
+      await Promise.all([
+        this.fetchRibbon(),
+        this.fetchTransactions(),
+        this.fetchOpenTrades(),
+        this.fetchAllTrades()
+      ]);
+      this.loadingTrades=false;
+    },
+
+    async fetchRibbon() {
+      const d = await this.gas('getRibbonData');
+      if (!d) return;
+      this.capital=d.capital||0; this.invested=d.invested||0; this.investedPct=d.investedPct||0;
+      this.totalRealisedPnl=d.totalRealisedPnl||0; this.totalPartialRealisedPnl=d.totalPartialRealisedPnl||0; this.runningCapital=d.runningCapital||d.capital||0;
+      this.config=d.config||this.config;
+      this.openPositions=d.openPositions||0; this.uniqueOpen=d.uniqueOpen||0;
+      this.realisedROCE=d.realisedROCE||0; this.unrealisedROCE=d.unrealisedROCE||0;
+      this.losingStreak=d.losingStreak||0; this.consecWins=d.consecWins||0;
+    },
+
+    async fetchTransactions() {
+      const d = await this.gas('getTransactions');
+      if (d&&d.transactions) this.transactions=d.transactions;
+    },
+
+    async fetchOpenTrades() {
+      const d = await this.gas('getOpenTrades');
+      if (d&&d.trades) this.openTrades=d.trades;
+    },
+
+    async fetchAllTrades() {
+      const d = await this.gas('getAllTrades');
+      if (d&&d.trades) {
+        this.allTrades=d.trades;
+        // Fetch exit legs for trades with partial exits
+        this.exitLegsCache={};
+        const withExits = d.trades.filter(t=>t.exitedQty>0);
+        await Promise.all(withExits.map(async t=>{
+          const r=await this.gas('getExitLegs',{tradeId:t.id});
+          if (r&&r.legs) this.exitLegsCache[t.id]=r.legs;
+        }));
+        // exitLegsCache fills in asynchronously AFTER allTrades is assigned above,
+        // so the allTrades watcher's renderAnalyticsCharts() call may have already
+        // fired with an empty cache (race condition). Re-render now that the cache
+        // is fully populated, so charts built from legDetails (e.g. the Realized
+        // P&L Curve) reflect the real data instead of an empty snapshot.
+        if (this.activeTab==='analytics') this.$nextTick(()=>this.renderAnalyticsCharts());
+      }
+    },
+
+    // ==================== FORMAT HELPERS ====================
+    fmtLocalDate(d) {
+      if (!d) return '';
+      let dt;
+      if (typeof d === 'string') {
+        // If it's already a full ISO timestamp (contains T), parse directly
+        // If it's just a date like "2026-08-09", append T00:00:00 to avoid timezone shift
+        dt = d.includes('T') ? new Date(d) : new Date(d+'T00:00:00');
+      } else {
+        dt = new Date(d);
+      }
+      if (isNaN(dt)) return String(d);
+      return dt.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+    },
+    fmtTime(t) {
+      if (!t) return '';
+      // Google Sheets stores time-only as "1899-12-30T04:41:50.000Z" — extract HH:MM
+      if (typeof t === 'string' && t.includes('T')) {
+        const dt = new Date(t);
+        if (!isNaN(dt)) return dt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
+      }
+      // Already "HH:MM" format
+      return String(t);
+    },
+    // Combine a raw date value + raw time value from the backend into one correct
+    // Date object. Both can arrive either as plain strings ("2026-07-25", "14:23")
+    // or as Sheets-auto-converted ISO timestamps ("2026-07-25T00:00:00.000Z" for the
+    // date, "1899-12-30T14:23:00.000Z" for the time — see fmtTime() above) — parsed
+    // independently and recombined so a mismatched pair never produces Invalid Date.
+    combineDateTime(dateVal, timeVal) {
+      if (!dateVal) return new Date(NaN);
+      const dateStr = String(dateVal);
+      const dateOnly = dateStr.includes('T') ? new Date(dateStr) : new Date(dateStr+'T00:00:00');
+      if (isNaN(dateOnly)) return new Date(NaN);
+      let hh=0, mm=0, ss=0;
+      if (timeVal) {
+        const timeStr = String(timeVal);
+        if (timeStr.includes('T')) {
+          const td = new Date(timeStr);
+          if (!isNaN(td)) { hh=td.getHours(); mm=td.getMinutes(); ss=td.getSeconds(); }
+        } else if (timeStr.includes(':')) {
+          const parts = timeStr.split(':').map(Number);
+          if (!isNaN(parts[0])) { hh=parts[0]||0; mm=parts[1]||0; ss=parts[2]||0; }
+        }
+      }
+      return new Date(dateOnly.getFullYear(), dateOnly.getMonth(), dateOnly.getDate(), hh, mm, ss);
+    },
+    fmtCur(n) {
+      if (n===null||n===undefined||isNaN(n)) return '₹0.00';
+      return '₹'+Number(Math.abs(n)).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+    },
+    n2(n) { return Number(n).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}); },
+    fmtR(r) { return (r>=0?'+':'')+r.toFixed(2)+'R'; },
+    pnlSign(v) { return v>=0?'+':'−'; },
+    colorClass(v) { return v>0?'text-green':v<0?'text-red':''; },
+    getTotalCharges(t) {
+      let total = t.buyCharges || 0;
+      const legs = this.exitLegsCache[t.id];
+      if (legs && legs.length) {
+        legs.forEach(l => { total += (l.exitCharges || 0); });
+      }
+      return total;
+    },
+    getLastExitTime(t) {
+      const legs = this.exitLegsCache[t.id];
+      if (!legs || !legs.length) return '';
+      const last = legs[legs.length - 1];
+      return last.time ? this.fmtTime(last.time) : '';
+    },
+    driveImg(url) {
+      if(!url) return '';
+      const m = url.match(/[?&]id=([^&]+)/)||url.match(/\/d\/([^/]+)/);
+      return m ? 'https://lh3.googleusercontent.com/d/'+m[1] : url;
+    },
+
+    // ==================== CHARGES ====================
+    calcCharges(rawPrice, qty, contract, side) {
+      const tv=rawPrice*qty, pfx=(contract==='CNC')?'CNC':'MIS';
+      const brokRate=(this.config[pfx+'_Brok_'+side]||0)/100;
+      const brokCap=this.config[pfx+'_Brok_'+side+'_Cap']||0;
+      const sttRate=(this.config[pfx+'_STT_'+side]||0)/100;
+      const sttCap=this.config[pfx+'_STT_'+side+'_Cap']||0;
+      let brokerage=tv*brokRate; if(brokCap>0) brokerage=Math.min(brokerage,brokCap);
+      let stt=tv*sttRate; if(sttCap>0) stt=Math.min(stt,sttCap);
+      const totalCharges=brokerage+stt;
+      const netPrice=side==='Buy'?(tv+totalCharges)/qty:(tv-totalCharges)/qty;
+      return {brokerage,stt,totalCharges,netPrice};
+    },
+
+    chargeSummary(prefix) {
+      const parts=[];
+      const bb=this.config[prefix+'_Brok_Buy']||0, bs=this.config[prefix+'_Brok_Sell']||0;
+      const bbc=this.config[prefix+'_Brok_Buy_Cap']||0, bsc=this.config[prefix+'_Brok_Sell_Cap']||0;
+      const sb=this.config[prefix+'_STT_Buy']||0, ss=this.config[prefix+'_STT_Sell']||0;
+      if(bb>0||bs>0){let s='Brok ';if(bb===bs){s+=bb+'%';if(bbc>0)s+=' (₹'+bbc+' cap)';}else{if(bb>0){s+=bb+'% buy';if(bbc>0)s+='(₹'+bbc+')';}if(bs>0){s+=(bb>0?' · ':'')+bs+'% sell';if(bsc>0)s+='(₹'+bsc+')';}}parts.push(s);}
+      if(sb>0||ss>0){let s='STT ';if(sb===ss)s+=sb+'% buy+sell';else{if(sb>0)s+=sb+'% buy';if(ss>0)s+=(sb>0?' · ':'')+ss+'% sell';}parts.push(s);}
+      return parts.length?parts.join(' · '):'No charges';
+    },
+
+    // ==================== R-MULTIPLE CALC ====================
+    getRData(trade) {
+      const legs = this.exitLegsCache[trade.id]||[];
+      return this.calcRData(trade, legs);
+    },
+
+    calcRData(trade, exitLegs) {
+      const t=trade;
+      const totalQty=t.totalQty||(t.lots*t.lotSize);
+      const remQty=t.remainingQty!==undefined?t.remainingQty:totalQty;
+      const exitedQty=totalQty-remQty;
+      const netBuyPrice=t.netBuyPrice||t.buyPrice;
+      const initialSL=t.initialSL;
+      const currentSL=t.currentSL||initialSL;
+      const isLong=t.type==='L';
+      const oneR=Math.abs(netBuyPrice-initialSL);
+      const initialSLPct=t.buyPrice>0?(Math.abs(t.buyPrice-initialSL)/t.buyPrice*100):0;
+      const absoluteRisk=oneR*totalQty;
+      const tradeCapital=t.capital||this.capital;
+      const riskCapitalPct=tradeCapital>0?(absoluteRisk/tradeCapital*100):0;
+      let realizedR=0, realizedPnl=0;
+      const legDetails=[];
+      if(exitLegs&&exitLegs.length){
+        exitLegs.forEach(leg=>{
+          const nep=leg.netExitPrice||leg.price;
+          const legR=oneR>0?(isLong?(nep-netBuyPrice)/oneR:(netBuyPrice-nep)/oneR):0;
+          const legPnl=isLong?(nep-netBuyPrice)*leg.qty:(netBuyPrice-nep)*leg.qty;
+          legDetails.push({qty:leg.qty,price:leg.price,netExitPrice:nep,legR,legPnl,date:leg.date,time:leg.time});
+          realizedR+=legR*leg.qty; realizedPnl+=legPnl;
+        });
+        realizedR=totalQty>0?realizedR/totalQty:0;
+      }
+      const openR=oneR>0?(isLong?(currentSL-netBuyPrice)/oneR:(netBuyPrice-currentSL)/oneR):0;
+      const openPnlAtSL=isLong?(currentSL-netBuyPrice)*remQty:(netBuyPrice-currentSL)*remQty;
+      const isRiskFree=openR>0;
+      const combinedR=totalQty>0?(realizedR*totalQty+openR*remQty)/totalQty:0;
+      return {oneR,initialSLPct,absoluteRisk,riskCapitalPct,realizedR,realizedPnl,legDetails,openR,openPnlAtSL,isRiskFree,combinedR,totalQty,remQty,exitedQty,netBuyPrice,currentSL,initialSL};
+    },
+
+    // ==================== SL EDITING ====================
+    startSLEdit(t) {
+      this.slEditing={[t.id]:true};
+      this.slEditValue=String(t.currentSL||t.initialSL);
+    },
+
+    async saveSL(t) {
+      const newSL=parseFloat(this.slEditValue);
+      if(!newSL||newSL<=0){this.toast('Enter a valid SL','error');return;}
+      this.slSaving=true;
+      const r=await this.gas('updateTradeSL',{tradeId:t.id,newSL});
+      if(r&&r.success){
+        t.currentSL=newSL;
+        const ot=this.openTrades.find(x=>x.id===t.id);
+        if(ot)ot.currentSL=newSL;
+        this.toast('SL updated to ₹'+Number(newSL).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}),'success');
+        this.slEditing={};
+      }
+      this.slSaving=false;
+    },
+
+    // ==================== TRADE SELECTION ====================
+    toggleSelectTrade(t) {
+      this.selectedTradeId = this.selectedTradeId === t.id ? null : t.id;
+    },
+    openContextMenu(e, t) {
+      this.selectedTradeId = t.id;
+      this.ctxTrade = t;
+      this.ctxX = e.clientX;
+      this.ctxY = e.clientY;
+      this.$nextTick(() => { this.ctxMenu = true; });
+    },
+
+    // ==================== VIEW TRADE ====================
+    async openViewDialog(t) {
+      this.vtRaw = t;
+      this.vt = {
+        symbol:t.symbol||'', type:t.type||'L', contract:t.contract||'CNC', status:t.status||'Open',
+        setup:t.setup||'', buyDate:t.buyDate||'', buyTime:t.buyTime||'', exitDate:t.exitDate||'',
+        buyPrice:t.buyPrice||0, initialSL:t.initialSL||0, currentSL:t.currentSL||t.initialSL||0,
+        invested:t.invested||0, avgExitPrice:t.avgExitPrice||0, pnl:t.pnl||0, pnlPct:t.pnlPct||0, result:t.result||'',
+        marketEnv:t.marketEnv||'', rvol:t.rvol||'', adRatio:t.adRatio||'',
+        causeMove:t.causeMove||'', consolMove:t.consolMove||'', maUndercut:t.maUndercut||'', lfRise:t.lfRise||'',
+        entryChartUrl:t.entryChartUrl||'', entryChartUrl2:t.entryChartUrl2||'', entryChartUrl3:t.entryChartUrl3||'', entryNotes:t.entryNotes||'',
+        lots:t.lots||1, lotSize:t.lotSize||1, totalQty:t.totalQty||(t.lots*t.lotSize),
+        remainingQty:t.remainingQty, exitedQty:t.exitedQty||0, netBuyPrice:t.netBuyPrice||t.buyPrice||0,
+        capital:t.capital||0
+      };
+      this.vtViewLegs = this.exitLegsCache[t.id] || [];
+      this.viewDialog = true;
+      // Fetch fresh legs if not cached
+      if (!this.exitLegsCache[t.id] && t.exitedQty > 0) {
+        const d = await this.gas('getExitLegs', {tradeId: t.id});
+        if (d && d.legs) { this.exitLegsCache[t.id] = d.legs; this.vtViewLegs = d.legs; }
+      }
+    },
+
+    // ==================== THRESHOLD EDIT ====================
+    async editThreshold() {
+      const v=prompt('Enter new streak threshold:',this.config.Streak_Threshold||7);
+      if(v===null)return;
+      const n=parseFloat(v);
+      if(isNaN(n)){this.toast('Invalid number','error');return;}
+      this.config.Streak_Threshold=n;
+      await this.gas('updateConfig',{key:'Streak_Threshold',value:n});
+      this.fetchRibbon();
+    },
+
+    // ==================== IMAGE UPLOAD ====================
+    readFileAsBase64(file) {
+      return new Promise((resolve,reject)=>{
+        if(!file){resolve(null);return;}
+        const reader=new FileReader();
+        reader.onload=()=>{const d=reader.result;resolve({base64:d.split(',')[1],mimeType:file.type,fileName:file.name});};
+        reader.onerror=reject;
+        reader.readAsDataURL(file);
+      });
+    },
+
+    async uploadChartImage(file,prefix) {
+      if(!file)return '';
+      const imgData=await this.readFileAsBase64(file);
+      if(!imgData)return '';
+      const r=await this.gas('uploadChart',{imageData:imgData.base64,fileName:prefix+'_'+Date.now()+'_'+imgData.fileName,mimeType:imgData.mimeType});
+      return (r&&r.success)?r.url:'';
+    },
+
+    // ==================== NEW TRADE ====================
+    openNewTradeDialog() {
+      const now=new Date();
+      const ds=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+      this.nt={type:'L',contract:'CNC',setup:'SVRO3',symbol:'',lots:1,lotSize:'',
+        buyDate:ds,buyTime:now.toTimeString().slice(0,5),buyPrice:'',initialSL:'',
+        marketEnv:'',rvol:'',adRatio:'',causeMove:'',consolMove:'',maUndercut:'',lfRise:'',
+        chartFileDaily:null,chartFileHourly:null,chartFileAdditional:null,entryNotes:''};
+      this.newTradeDialog=true;
+    },
+
+    async submitNewTrade() {
+      const nt=this.nt;
+      const symbol=nt.symbol.trim().toUpperCase();
+      const lotSize=parseInt(nt.lotSize)||0;
+      const buyPrice=parseFloat(nt.buyPrice)||0;
+      const initialSL=parseFloat(nt.initialSL)||0;
+      if(!symbol){this.toast('Enter a stock symbol','error');return;}
+      if(!lotSize||lotSize<=0){this.toast('Enter a valid lot size','error');return;}
+      if(!buyPrice||buyPrice<=0){this.toast('Enter a valid buy price','error');return;}
+      if(!initialSL||initialSL<=0){this.toast('Enter a valid stop loss','error');return;}
+      if(nt.type==='L'&&initialSL>=buyPrice){this.toast('Long: SL must be below buy price','error');return;}
+      if(nt.type==='S'&&initialSL<=buyPrice){this.toast('Short: SL must be above buy price','error');return;}
+
+      this.ntSubmitting=true;
+      let entryChartUrl='', entryChartUrl2='', entryChartUrl3='';
+      const cfDaily=Array.isArray(nt.chartFileDaily)?nt.chartFileDaily[0]:nt.chartFileDaily;
+      const cfHourly=Array.isArray(nt.chartFileHourly)?nt.chartFileHourly[0]:nt.chartFileHourly;
+      const cfAdditional=Array.isArray(nt.chartFileAdditional)?nt.chartFileAdditional[0]:nt.chartFileAdditional;
+      if(cfDaily){entryChartUrl=await this.uploadChartImage(cfDaily,symbol+'_daily');}
+      if(cfHourly){entryChartUrl2=await this.uploadChartImage(cfHourly,symbol+'_hourly');}
+      if(cfAdditional){entryChartUrl3=await this.uploadChartImage(cfAdditional,symbol+'_additional');}
+
+      const r=await this.gas('addNewTrade',{
+        type:nt.type,contract:nt.contract,symbol,lots:nt.lots,lotSize,
+        buyDate:nt.buyDate,buyTime:nt.buyTime,buyPrice,initialSL,setup:nt.setup,
+        rvol:parseInt(nt.rvol)||0,adRatio:parseFloat(nt.adRatio)||0,
+        causeMove:parseFloat(nt.causeMove)||0,consolMove:parseFloat(nt.consolMove)||0,
+        maUndercut:nt.maUndercut,lfRise:parseFloat(nt.lfRise)||0,
+        entryChartUrl,entryChartUrl2,entryChartUrl3,entryNotes:nt.entryNotes,
+        marketEnv:parseFloat(nt.marketEnv)||''
+      });
+
+      if(r&&r.success){
+        this.toast(`Trade ${r.tradeId} — ${symbol} submitted!`,'success');
+        this.newTradeDialog=false;
+        await this.refreshAll();
+      } else if(!r) {
+        this.newTradeDialog=false;
+        this.toast('Connection lost — trade may have been added. Refreshing…','warning');
+        await this.refreshAll();
+      }
+      this.ntSubmitting=false;
+    },
+
+    // ==================== EDIT TRADE ====================
+    async openEditDialog(t) {
+      const legs = this.exitLegsCache[t.id] || [];
+      this.et={
+        tradeId:t.id, symbol:t.symbol, status:t.status||'Open',
+        entryPrice:t.buyPrice||'', lots:t.lots||1, lotSize:t.lotSize||1,
+        marketEnv:t.marketEnv||'', rvol:t.rvol||'', adRatio:t.adRatio||'',
+        causeMove:t.causeMove||'', consolMove:t.consolMove||'',
+        maUndercut:t.maUndercut||'', lfRise:t.lfRise||'',
+        entryNotes:t.entryNotes||'', entryChartUrl:t.entryChartUrl||'',
+        entryChartUrl2:t.entryChartUrl2||'', entryChartUrl3:t.entryChartUrl3||'',
+        chartFileDaily:null, chartFileHourly:null, chartFileAdditional:null,
+        exitLegs: legs.map(l => ({...l, exitNotes:l.exitNotes||'', chartUrl:l.chartUrl||'', chartFile:null}))
+      };
+      this.editDialog=true;
+      // Fetch exit legs if not cached
+      if (!this.exitLegsCache[t.id] && t.exitedQty > 0) {
+        const d = await this.gas('getExitLegs', {tradeId: t.id});
+        if (d && d.legs) {
+          this.exitLegsCache[t.id] = d.legs;
+          this.et.exitLegs = d.legs.map(l => ({...l, exitNotes:l.exitNotes||'', chartUrl:l.chartUrl||'', chartFile:null}));
+        }
+      }
+    },
+
+    async saveEdit() {
+      this.etSubmitting=true;
+      const payload={
+        tradeId:this.et.tradeId,
+        entryPrice:parseFloat(this.et.entryPrice)||0,
+        lots:parseInt(this.et.lots)||1,
+        lotSize:parseInt(this.et.lotSize)||1,
+        rvol:this.et.rvol||0, adRatio:this.et.adRatio||0,
+        causeMove:this.et.causeMove||0, consolMove:this.et.consolMove||0,
+        maUndercut:this.et.maUndercut||'', lfRise:this.et.lfRise||0,
+        entryNotes:this.et.entryNotes||'',
+        marketEnv:parseFloat(this.et.marketEnv)||''
+      };
+      // Upload entry charts if changed
+      const cfDaily=Array.isArray(this.et.chartFileDaily)?this.et.chartFileDaily[0]:this.et.chartFileDaily;
+      const cfHourly=Array.isArray(this.et.chartFileHourly)?this.et.chartFileHourly[0]:this.et.chartFileHourly;
+      const cfAdditional=Array.isArray(this.et.chartFileAdditional)?this.et.chartFileAdditional[0]:this.et.chartFileAdditional;
+      if(cfDaily){
+        const url=await this.uploadChartImage(cfDaily,this.et.symbol+'_daily_update');
+        if(url)payload.entryChartUrl=url;
+      }
+      if(cfHourly){
+        const url=await this.uploadChartImage(cfHourly,this.et.symbol+'_hourly_update');
+        if(url)payload.entryChartUrl2=url;
+      }
+      if(cfAdditional){
+        const url=await this.uploadChartImage(cfAdditional,this.et.symbol+'_additional_update');
+        if(url)payload.entryChartUrl3=url;
+      }
+      // Upload exit leg charts and collect updated notes
+      if(this.et.exitLegs.length){
+        const updatedLegs=[];
+        for(let i=0;i<this.et.exitLegs.length;i++){
+          const leg=this.et.exitLegs[i];
+          const legUpdate={legIndex:i, exitNotes:leg.exitNotes||'', exitPrice:parseFloat(leg.price)||0, exitQty:parseInt(leg.qty)||0};
+          const lf=Array.isArray(leg.chartFile)?leg.chartFile[0]:leg.chartFile;
+          if(lf){
+            const url=await this.uploadChartImage(lf,this.et.symbol+'_exit_leg'+i+'_update');
+            if(url)legUpdate.chartUrl=url;
+          }
+          updatedLegs.push(legUpdate);
+        }
+        payload.exitLegs=updatedLegs;
+      }
+      const r=await this.gas('updateTradeFields',payload);
+      if(r&&r.success){
+        this.toast('Trade updated','success');
+        this.editDialog=false;
+        // Clear exit legs cache so it refreshes
+        delete this.exitLegsCache[this.et.tradeId];
+        await this.refreshAll();
+      }
+      this.etSubmitting=false;
+    },
+
+    // ==================== EXIT TRADE ====================
+    async openExitDialog(t) {
+      const now=new Date();
+      const ds=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+      const ot=this.openTrades.find(x=>x.id===t.id)||t;
+      const remQty=ot.remainingQty!==undefined?ot.remainingQty:(ot.lots*ot.lotSize);
+      this.ex={
+        tradeId:t.id, symbol:t.symbol, contract:t.contract, type:t.type,
+        remQty, netBuy:ot.netBuyPrice||ot.buyPrice,
+        exitDate:ds, exitTime:now.toTimeString().slice(0,5),
+        exitPrice:'', exitQty:'', chartFile:null, exitNotes:'',
+        existingLegs:[]
+      };
+      this.exitDialog=true;
+      // Fetch existing exit legs
+      const d=await this.gas('getExitLegs',{tradeId:t.id});
+      if(d&&d.legs)this.ex.existingLegs=d.legs;
+    },
+
+    async submitExit() {
+      const exitPrice=parseFloat(this.ex.exitPrice)||0;
+      const exitQty=parseInt(this.ex.exitQty)||0;
+      if(!exitPrice||exitPrice<=0){this.toast('Enter a valid exit price','error');return;}
+      if(!exitQty||exitQty<=0){this.toast('Enter a valid exit quantity','error');return;}
+      if(exitQty>this.ex.remQty){this.toast(`Cannot exit ${exitQty} — only ${this.ex.remQty} remaining`,'error');return;}
+
+      this.exSubmitting=true;
+      let exitChartUrl='';
+      const chartFile=Array.isArray(this.ex.chartFile)?this.ex.chartFile[0]:this.ex.chartFile;
+      if(chartFile){exitChartUrl=await this.uploadChartImage(chartFile,this.ex.symbol+'_exit');}
+
+      const r=await this.gas('addExitLeg',{
+        tradeId:this.ex.tradeId, exitPrice, exitQty,
+        exitDate:this.ex.exitDate, exitTime:this.ex.exitTime,
+        exitChartUrl, exitNotes:this.ex.exitNotes,
+        contract:this.ex.contract
+      });
+
+      if(r&&r.success){
+        if(r.status==='Closed'){
+          this.toast(`${this.ex.symbol} FULLY CLOSED — ${r.result} (${this.fmtCur(r.pnl)})`,'success');
+        }else{
+          this.toast(`${this.ex.symbol}: Exited ${exitQty} qty @ ₹${exitPrice.toLocaleString('en-IN')} — ${r.remainingQty} remaining`,'success');
+        }
+        this.exitDialog=false;
+        this.selectedTradeId=null;
+        await this.refreshAll();
+      } else if(!r) {
+        this.exitDialog=false;
+        this.selectedTradeId=null;
+        this.toast('Connection lost — exit may have gone through. Refreshing…','warning');
+        await this.refreshAll();
+      }
+      this.exSubmitting=false;
+    },
+
+    // ==================== CHARGES CONFIG ====================
+    openChargesDialog() {
+      this.cfgEdit={...this.config};
+      this.chargesDialog=true;
+    },
+
+    async saveChargesConfig() {
+      const KEYS=['MIS_Brok_Buy','MIS_Brok_Buy_Cap','MIS_Brok_Sell','MIS_Brok_Sell_Cap',
+        'MIS_STT_Buy','MIS_STT_Buy_Cap','MIS_STT_Sell','MIS_STT_Sell_Cap',
+        'CNC_Brok_Buy','CNC_Brok_Buy_Cap','CNC_Brok_Sell','CNC_Brok_Sell_Cap',
+        'CNC_STT_Buy','CNC_STT_Buy_Cap','CNC_STT_Sell','CNC_STT_Sell_Cap'];
+      for(const k of KEYS){
+        const v=parseFloat(this.cfgEdit[k]);
+        if(isNaN(v)||v<0){this.toast('Invalid value for '+k,'error');return;}
+        this.config[k]=v;
+      }
+      this.cfgSaving=true;
+      for(const k of KEYS){await this.gas('updateConfig',{key:k,value:this.config[k]});}
+      this.cfgSaving=false;
+      this.chargesDialog=false;
+      this.fetchRibbon();
+      this.toast('Charge config saved','success');
+    },
+
+    // ==================== CAPITAL ====================
+    async submitCapital() {
+      const amount=parseFloat(String(this.capAmount).replace(/[^0-9.]/g,''));
+      if(!amount||amount<=0){this.toast('Enter a valid amount','error');return;}
+      if(this.capStatus==='Withdrawn'&&amount>this.capital){this.toast('Cannot withdraw more than ₹'+this.capital.toLocaleString('en-IN'),'error');return;}
+      if(new Date(this.capDate)>new Date()){this.toast('Date cannot be in the future','error');return;}
+      this.capSubmitting=true;
+      const r=await this.gas('updateCapital',{amount,status:this.capStatus,date:this.capDate});
+      if(r&&r.success){
+        this.toast(this.capStatus==='Added'?`₹${amount.toLocaleString('en-IN')} added`:`₹${amount.toLocaleString('en-IN')} withdrawn`,'success');
+        this.capAmount='';
+        await this.refreshAll();
+      } else if(!r) {
+        this.toast('Connection lost — transaction may have gone through. Refreshing…','warning');
+        await this.refreshAll();
+      }
+      this.capSubmitting=false;
+    },
+
+    // ==================== ANALYTICS HELPERS ====================
+    groupStats(trades, keyFn) {
+      const groups = {};
+      trades.forEach(t => {
+        const k = keyFn(t);
+        if (k===null || k===undefined || k==='') return;
+        if (!groups[k]) groups[k] = {label:k, count:0, wins:0, pnlSum:0, rSum:0, grossWin:0, grossLoss:0};
+        const g = groups[k];
+        g.count++;
+        if (t.result==='Win') g.wins++;
+        const pnl = t.pnl||0;
+        g.pnlSum += pnl;
+        g.rSum += this.getRData(t).combinedR;
+        if (pnl>=0) g.grossWin+=pnl; else g.grossLoss+=Math.abs(pnl);
+      });
+      return Object.values(groups).map(g => ({
+        label:g.label, count:g.count,
+        winRate: g.count?g.wins/g.count*100:0,
+        avgR: g.count?g.rSum/g.count:0,
+        avgPnl: g.count?g.pnlSum/g.count:0,
+        totalPnl: g.pnlSum,
+        profitFactor: g.grossLoss>0?g.grossWin/g.grossLoss:(g.grossWin>0?Infinity:0)
+      })).sort((a,b)=>b.totalPnl-a.totalPnl);
+    },
+
+    tertiaryBucketFn(trades, valueFn, fmt) {
+      const vals = trades.map(valueFn).filter(v=>v!==null&&v!==undefined&&!isNaN(v)).sort((a,b)=>a-b);
+      if (vals.length < 6) return () => null; // too few data points to bucket meaningfully
+      const q1 = vals[Math.floor(vals.length/3)];
+      const q2 = vals[Math.floor(vals.length*2/3)];
+      return (t) => {
+        const v = valueFn(t);
+        if (v===null||v===undefined||isNaN(v)) return null;
+        if (v<=q1) return 'Low (≤'+fmt(q1)+')';
+        if (v<=q2) return 'Mid ('+fmt(q1)+'–'+fmt(q2)+')';
+        return 'High (>'+fmt(q2)+')';
+      };
+    },
+
+    fmtChartDate(d) {
+      const dt = (d instanceof Date) ? d : new Date(d);
+      if (isNaN(dt)) return '';
+      return dt.toLocaleDateString('en-IN',{day:'2-digit',month:'short'});
+    },
+
+    fmtMonthLabel(ym) {
+      const parts = String(ym).split('-');
+      const dt = new Date(Number(parts[0]), Number(parts[1])-1, 1);
+      if (isNaN(dt)) return ym;
+      return dt.toLocaleDateString('en-IN',{month:'short',year:'2-digit'});
+    },
+
+    chartBaseOptions(prefix) {
+      return {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor:'#1E293B', titleColor:'#F1F5F9', bodyColor:'#CBD5E1',
+            borderColor:'#334155', borderWidth:1, padding:10,
+            callbacks: { label: (ctx) => (prefix||'')+Number(ctx.parsed.y).toLocaleString('en-IN',{maximumFractionDigits:2}) }
+          }
+        },
+        scales: {
+          x: { grid:{color:'rgba(51,65,85,0.6)'}, ticks:{color:'#64748B', font:{size:10}, maxRotation:0, autoSkip:true} },
+          y: { grid:{color:'rgba(51,65,85,0.6)'}, ticks:{color:'#64748B', font:{size:10}} }
+        }
+      };
+    },
+
+    renderChart(refName, config) {
+      if (!this._charts) this._charts = {};
+      const canvas = this.$refs[refName];
+      if (!canvas) return;
+      if (this._charts[refName]) this._charts[refName].destroy();
+      this._charts[refName] = new Chart(canvas, config);
+    },
+
+    renderAnalyticsCharts() {
+      if (typeof Chart === 'undefined') return;
+      this.$nextTick(() => {
+        this.renderPnlCurveChart();
+        this.renderMonthlyPnlChart();
+        this.renderDrawdownChart();
+        this.renderRiskTrendChart();
+        this.renderStreakChart();
+      });
+    },
+
+    renderPnlCurveChart() {
+      const pts = this.pnlCurveData;
+      const markers = this.capitalMarkers;
+      const ys = pts.map(p=>p.y);
+      const minY = Math.min(0, ...ys);
+      const maxY = Math.max(0, ...ys);
+      const range = Math.max(1, maxY-minY);
+      const markerY = minY - range*0.08;
+      const addedColor = '#3B82F6', withdrawnColor = '#FBBF24';
+      const fmtDate = this.fmtChartDate;
+
+      this.renderChart('pnlCurveChart', {
+        type:'line',
+        data:{
+          datasets:[
+            {
+              label:'Realized P&L',
+              data: pts.map(p=>({x:p.x.getTime(), y:p.y, runningCapital:p.runningCapital})),
+              borderColor:'#4ADE80', backgroundColor:'rgba(74,222,128,0.15)',
+              segment: {
+                borderColor: (ctx) => ((ctx.p0.parsed.y+ctx.p1.parsed.y)/2 >= 0) ? '#4ADE80' : '#F87171',
+                backgroundColor: (ctx) => ((ctx.p0.parsed.y+ctx.p1.parsed.y)/2 >= 0) ? 'rgba(74,222,128,0.15)' : 'rgba(248,113,113,0.15)'
+              },
+              fill: {value:0}, tension:0.1, pointRadius:0, borderWidth:2, order:2
+            },
+            {
+              label:'Capital Events',
+              data: markers.map(m=>({x:m.x.getTime(), y:markerY, type:m.type, amount:m.amount})),
+              showLine:false, pointRadius:7, pointHoverRadius:10, hitRadius:14,
+              pointStyle: markers.map(m=>m.type==='Added'?'triangle':'rectRot'),
+              pointBackgroundColor: markers.map(m=>m.type==='Added'?addedColor:withdrawnColor),
+              pointBorderColor: markers.map(m=>m.type==='Added'?addedColor:withdrawnColor),
+              pointBorderWidth: 2,
+              order:1
+            }
+          ]
+        },
+        options: {
+          responsive:true, maintainAspectRatio:false,
+          interaction: { mode:'nearest', intersect:false, axis:'x' },
+          plugins:{
+            legend:{display:false},
+            tooltip:{
+              backgroundColor:'#1E293B', titleColor:'#F1F5F9', bodyColor:'#CBD5E1',
+              borderColor:'#334155', borderWidth:1, padding:10,
+              callbacks:{
+                title:(items) => fmtDate(new Date(items[0].parsed.x)),
+                label:(ctx) => {
+                  if (ctx.dataset.label==='Capital Events') {
+                    const d = ctx.raw;
+                    return (d.type==='Added'?'+ Added ₹':'− Withdrawn ₹')+Number(d.amount).toLocaleString('en-IN');
+                  }
+                  const lines = ['P&L: ₹'+Number(ctx.parsed.y).toLocaleString('en-IN',{maximumFractionDigits:2})];
+                  const rc = ctx.raw && ctx.raw.runningCapital;
+                  if (rc!==undefined && rc!==null && !isNaN(rc)) {
+                    lines.push('Running Capital: ₹'+Number(rc).toLocaleString('en-IN',{maximumFractionDigits:2}));
+                  }
+                  return lines;
+                }
+              }
+            }
+          },
+          scales:{
+            x:{ type:'linear', grid:{color:'rgba(51,65,85,0.6)'}, ticks:{color:'#64748B', font:{size:10}, callback:(val)=>fmtDate(new Date(val))} },
+            y:{ grid:{color:'rgba(51,65,85,0.6)'}, ticks:{color:'#64748B', font:{size:10}} }
+          }
+        }
+      });
+    },
+
+    renderMonthlyPnlChart() {
+      const pts = this.monthlyPnlData;
+      this.renderChart('monthlyPnlChart', {
+        type:'bar',
+        data:{ labels: pts.map(p=>this.fmtMonthLabel(p.month)),
+          datasets:[{ data: pts.map(p=>p.pnl),
+            backgroundColor: pts.map(p=>p.pnl>=0?'rgba(74,222,128,0.7)':'rgba(248,113,113,0.7)'),
+            borderColor: pts.map(p=>p.pnl>=0?'#4ADE80':'#F87171'), borderWidth:1, borderRadius:4 }] },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor:'#1E293B', titleColor:'#F1F5F9', bodyColor:'#CBD5E1',
+              borderColor:'#334155', borderWidth:1, padding:10,
+              callbacks: {
+                label: (ctx) => {
+                  const d = pts[ctx.dataIndex] || {count:0, winRate:0};
+                  return [
+                    'P&L: ₹'+Number(ctx.parsed.y).toLocaleString('en-IN',{maximumFractionDigits:2}),
+                    'Trades Closed: '+d.count,
+                    'Win Rate: '+d.winRate.toFixed(1)+'%'
+                  ];
+                }
+              }
+            }
+          },
+          scales: {
+            x: { grid:{color:'rgba(51,65,85,0.6)'}, ticks:{color:'#64748B', font:{size:10}, maxRotation:0, autoSkip:true} },
+            y: { grid:{color:'rgba(51,65,85,0.6)'}, ticks:{color:'#64748B', font:{size:10}} }
+          }
+        }
+      });
+    },
+
+    renderDrawdownChart() {
+      const pts = this.drawdownData;
+      this.renderChart('drawdownChart', {
+        type:'line',
+        data:{ labels: pts.map(p=>this.fmtChartDate(p.x)),
+          datasets:[{ data: pts.map(p=>p.y), borderColor:'#F87171', backgroundColor:'rgba(248,113,113,0.15)', fill:true, tension:0.1, pointRadius:0, borderWidth:2 }] },
+        options: this.chartBaseOptions('%')
+      });
+    },
+
+    renderRiskTrendChart() {
+      const pts = this.riskTrendData;
+      const colorFor = o => o==='win'?'#4ADE80':o==='loss'?'#F87171':'#94A3B8';
+      this.renderChart('riskTrendChart', {
+        type:'line',
+        data:{ labels: pts.map(p=>this.fmtChartDate(p.x)),
+          datasets:[{ data: pts.map(p=>p.y), borderColor:'#FBBF24', backgroundColor:'rgba(251,191,36,0.08)',
+            fill:false, tension:0, borderWidth:1, pointBackgroundColor: pts.map(p=>colorFor(p.outcome)), pointRadius:3, pointHoverRadius:5 }] },
+        options: this.chartBaseOptions('%')
+      });
+    },
+
+    renderStreakChart() {
+      const msd = this.monthlyStreakData;
+      const monthLabels = msd.map(d => {
+        const [y,m] = d.month.split('-');
+        return new Date(Number(y), Number(m)-1).toLocaleString('en-IN',{month:'short', year:'2-digit'});
+      });
+      const opts = this.chartBaseOptions('');
+      opts.scales.x.stacked = true;
+      opts.scales.y.stacked = true;
+      opts.scales.y.beginAtZero = true;
+      opts.scales.y.ticks.stepSize = 1;
+      opts.plugins.tooltip.callbacks.label = (ctx) => ctx.dataset.label + ': ' + ctx.parsed.y;
+      this.renderChart('streakChart', {
+        type:'bar',
+        data:{ labels: monthLabels,
+          datasets:[
+            { label:'Wins', data: msd.map(d=>d.wins), backgroundColor:'#4ADE80', borderRadius:0, stack:'streak' },
+            { label:'Losses', data: msd.map(d=>d.losses), backgroundColor:'#F87171', borderRadius:{topLeft:3,topRight:3,bottomLeft:0,bottomRight:0}, stack:'streak' }
+          ] },
+        options: opts
+      });
+    }
+  },
+
+  async mounted() {
+    if(this.url){
+      this.connected=true;
+      await this.refreshAll();
+    }
+    // Initialize charges dialog model
+    this.cfgEdit={...this.config};
+  }
+});
+
+// Vuetify setup
+const vuetify = Vuetify.createVuetify({
+  theme: {
+    defaultTheme: 'dark',
+    themes: {
+      dark: {
+        dark: true,
+        colors: {
+          background: '#0F172A',
+          surface: '#1E293B',
+          'surface-variant': '#334155',
+          'on-background': '#F1F5F9',
+          'on-surface': '#F1F5F9',
+          primary: '#3B82F6',
+          secondary: '#8B5CF6',
+          success: '#4ADE80',
+          error: '#F87171',
+          warning: '#FBBF24',
+          info: '#60A5FA'
+        }
+      }
+    }
+  }
+});
+
+app.use(vuetify);
+app.config.errorHandler = (err, vm, info) => { console.error('[Vue Error]', err.message, info); };
+app.mount('#app');
+</script>
+</body>
+</html>
