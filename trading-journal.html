@@ -1341,6 +1341,7 @@ const app = createApp({
       sortBy:'date', sortDir:'desc',
       sortOptions:[
         {key:'date', label:'Date (Buy)'},
+        {key:'exitDate', label:'Date (Sell)'},
         {key:'symbol', label:'Symbol (A-Z)'},
         {key:'risk', label:'Risk on Capital'},
         {key:'pnl', label:'Realised P&L'},
@@ -1430,6 +1431,24 @@ const app = createApp({
         let va, vb;
         switch(me.sortBy) {
           case 'date': return dir * cmpStr(a.buyDate||'', b.buyDate||'');
+          case 'exitDate': {
+            // Last sell date (falls back to latest exit leg for partially exited open trades);
+            // trades with no exit yet are treated as "not yet sold" (latest): top on desc, bottom on asc.
+            const lastSell = t => {
+              if (t.exitDate) return t.exitDate;
+              const legs = me.exitLegsCache[t.id];
+              if (!legs || !legs.length) return '';
+              return legs.reduce((m,l) => {
+                if (!l.date) return m;
+                const dt = (typeof l.date === 'string' && !l.date.includes('T')) ? new Date(l.date+'T00:00:00') : new Date(l.date);
+                if (isNaN(dt)) return m;
+                const d = dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+                return d > m ? d : m;
+              }, '');
+            };
+            const ea = lastSell(a) || '9999-12-31', eb = lastSell(b) || '9999-12-31';
+            return dir * cmpStr(ea, eb);
+          }
           case 'symbol': return dir * cmpStr(a.symbol||'', b.symbol||'');
           case 'risk': {
             const ra=me.getRData(a), rb=me.getRData(b);
