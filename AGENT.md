@@ -123,7 +123,7 @@ Google Apps Script v4, ~1193 lines. Deployed as a web app bound to a Google Shee
 
 **Capital_Transactions** (7 cols): Txn_ID, Date, Time, Type, Amount, Running_Balance, Timestamp.
 
-**Config** (Key/Value/Description): brokerage and STT rates for MIS and CNC (buy/sell, % and cap), plus `Streak_Threshold`. Loaded by `calcCharges()` at runtime.
+**Config** (Key/Value/Description): brokerage and STT rates for MIS and CNC (buy/sell, % and cap), plus `Streak_Threshold` and the Zerodha statutory charges (`Txn_Charge_Pct`, `SEBI_Per_Crore`, `GST_Pct`, `MIS_Stamp_Buy`, `CNC_Stamp_Buy`, `CNC_DP_Sell`). Loaded by `calcCharges()` at runtime; the statutory keys fall back to built-in defaults if absent from an older Config sheet.
 
 **Summary**: formula-only sheet. `B2` = current capital (referenced when snapshotting capital on `addNewTrade`).
 
@@ -150,7 +150,7 @@ Google Apps Script v4, ~1193 lines. Deployed as a web app bound to a Google Shee
 
 ### Key function notes
 
-- `calcCharges(rawPrice, qty, contract, side)` — reads live Config sheet for brokerage/STT rates; returns `{brokerage, stt, totalCharges, netPrice}`.
+- `calcCharges(rawPrice, qty, contract, side)` — reads live Config sheet for brokerage/STT rates and adds exchange txn charge, SEBI fee, GST (18% on brokerage+SEBI+txn), stamp duty (buy only) and DP charge (CNC sell, flat per leg); returns `{brokerage, stt, txn, sebi, gst, stamp, dp, totalCharges, netPrice}`. Duplicated in `trading-journal.html` (preview) — keep both in sync. Charges are stored at save time and not restated for existing trades.
 - `addNewTrade` — snapshots current capital from `Summary.B2` into col AK at creation time so allocation % is always relative to capital-at-entry, not current capital.
 - `addExitLeg` — decrements `Remaining_Qty` (col V) on the Trades row; marks Status `Closed` and writes exit summary columns (X–AB, AJ) when remaining hits 0. Validates exit qty doesn't exceed remaining. Supports contract override (e.g. CNC→MIS same-day exit).
 - `getRibbonData` — computes aggregate stats (open P&L, invested, win rate, streak, etc.) and calls `calcStreaks()`.

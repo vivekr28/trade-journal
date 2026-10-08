@@ -157,7 +157,7 @@ function setupSheet() {
     cfgSheet = ss.insertSheet('Config');
     cfgSheet.getRange(1,1,1,3).setValues([['Key','Value','Description']]);
     cfgSheet.getRange(1,1,1,3).setFontWeight('bold').setBackground('#1a1a2e').setFontColor('#ffffff');
-    cfgSheet.getRange(2,1,17,3).setValues([
+    cfgSheet.getRange(2,1,23,3).setValues([
       ['Streak_Threshold', 7, 'Consecutive losses before size-cut warning'],
       ['MIS_Brok_Buy', 0.03, 'MIS Brokerage % on Buy'],
       ['MIS_Brok_Buy_Cap', 20, 'MIS Brokerage cap ₹ on Buy (0=no cap)'],
@@ -174,7 +174,13 @@ function setupSheet() {
       ['CNC_STT_Buy', 0.1, 'CNC STT % on Buy'],
       ['CNC_STT_Buy_Cap', 0, 'CNC STT cap ₹ on Buy (0=no cap)'],
       ['CNC_STT_Sell', 0.1, 'CNC STT % on Sell'],
-      ['CNC_STT_Sell_Cap', 0, 'CNC STT cap ₹ on Sell (0=no cap)']
+      ['CNC_STT_Sell_Cap', 0, 'CNC STT cap ₹ on Sell (0=no cap)'],
+      ['Txn_Charge_Pct', 0.00307, 'Exchange transaction charge % (NSE equity, both sides)'],
+      ['SEBI_Per_Crore', 10, 'SEBI turnover fee ₹ per crore (both sides)'],
+      ['GST_Pct', 18, 'GST % on brokerage + SEBI + exchange charges'],
+      ['MIS_Stamp_Buy', 0.003, 'MIS stamp duty % (buy side only)'],
+      ['CNC_Stamp_Buy', 0.015, 'CNC stamp duty % (buy side only)'],
+      ['CNC_DP_Sell', 15.34, 'CNC DP charge ₹ flat per sell leg']
     ]);
     cfgSheet.setColumnWidth(1,180); cfgSheet.setColumnWidth(2,100); cfgSheet.setColumnWidth(3,300);
     log.push('Created: Config with defaults');
@@ -483,9 +489,20 @@ function calcStreaks() {
 
 // ==================== CHARGE CALCULATION (Zerodha) ====================
 // contract: 'CNC' or 'MIS', side: 'Buy' or 'Sell'
-// Returns {brokerage, stt, totalCharges, netPrice}
+// Returns {brokerage, stt, txn, sebi, gst, stamp, dp, totalCharges, netPrice}
 // For Buy: netPrice = rawPrice + charges/qty (cost goes up)
 // For Sell: netPrice = rawPrice - charges/qty (proceeds go down)
+// Brokerage/STT rates come from Config; the remaining statutory charges fall back to
+// ZERODHA_CHARGE_DEFAULTS when a key is missing from the Config sheet.
+// KEEP IN SYNC with calcCharges() in trading-journal.html.
+var ZERODHA_CHARGE_DEFAULTS = {
+  Txn_Charge_Pct: 0.00307,  // NSE exchange transaction charge, % of value, both sides
+  SEBI_Per_Crore: 10,       // SEBI turnover fee, ₹ per crore, both sides
+  GST_Pct: 18,              // GST on brokerage + SEBI + exchange charges
+  MIS_Stamp_Buy: 0.003,     // Stamp duty %, buy side only
+  CNC_Stamp_Buy: 0.015,
+  CNC_DP_Sell: 15.34        // Flat DP charge ₹ on delivery sells
+};
 function calcCharges(rawPrice, qty, contract, side) {
   var cfg = getConfig();
   var tradeValue = rawPrice * qty;
@@ -497,19 +514,31 @@ function calcCharges(rawPrice, qty, contract, side) {
   var sttRate  = (cfg[prefix + '_STT_' + side] || 0) / 100;
   var sttCap   = cfg[prefix + '_STT_' + side + '_Cap'] || 0;
 
+  var other = function(key) {
+    var v = cfg[key];
+    return (v === undefined || v === '' || v === null || isNaN(Number(v))) ? ZERODHA_CHARGE_DEFAULTS[key] : Number(v);
+  };
+
   var brokerage = tradeValue * brokRate;
   if (brokCap > 0) brokerage = Math.min(brokerage, brokCap);
   var stt = tradeValue * sttRate;
   if (sttCap > 0) stt = Math.min(stt, sttCap);
 
-  var totalCharges = brokerage + stt;
+  var txn   = tradeValue * other('Txn_Charge_Pct') / 100;
+  var sebi  = tradeValue * other('SEBI_Per_Crore') / 10000000;
+  var gst   = (brokerage + txn + sebi) * other('GST_Pct') / 100;
+  var stamp = (side === 'Buy') ? tradeValue * other(prefix + '_Stamp_Buy') / 100 : 0;
+  var dp    = (side === 'Sell' && prefix === 'CNC') ? other('CNC_DP_Sell') : 0;
+
+  var totalCharges = brokerage + stt + txn + sebi + gst + stamp + dp;
   var netPrice;
   if (side === 'Buy') {
     netPrice = (tradeValue + totalCharges) / qty;
   } else {
     netPrice = (tradeValue - totalCharges) / qty;
   }
-  return {brokerage: brokerage, stt: stt, totalCharges: totalCharges, netPrice: netPrice};
+  return {brokerage: brokerage, stt: stt, txn: txn, sebi: sebi, gst: gst, stamp: stamp, dp: dp,
+          totalCharges: totalCharges, netPrice: netPrice};
 }
 
 // ==================== CAPITAL ====================
