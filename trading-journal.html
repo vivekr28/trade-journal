@@ -842,6 +842,7 @@
             <v-divider class="my-2"></v-divider>
             <div class="pv-row"><span class="tc-label">Brokerage</span><span class="mono font-weight-medium">{{fmtCur(ntPreview.brokerage)}}</span></div>
             <div class="pv-row"><span class="tc-label">STT</span><span class="mono font-weight-medium">{{fmtCur(ntPreview.stt)}}</span></div>
+            <div class="pv-row"><span class="tc-label">Other (GST, stamp, exchange, SEBI)</span><span class="mono font-weight-medium">{{fmtCur(ntPreview.other)}}</span></div>
             <div class="pv-row"><span class="tc-label">Total Charges</span><span class="mono font-weight-medium text-yellow">{{fmtCur(ntPreview.totalCharges)}}</span></div>
             <div class="pv-row"><span class="tc-label">Net Buy Price</span><span class="mono font-weight-medium text-accent">₹{{n2(ntPreview.netPrice)}}</span></div>
           </div>
@@ -1046,6 +1047,7 @@
             <div class="pv-row"><span class="tc-label">Exit Amount</span><span class="mono font-weight-medium">{{fmtCur(exPreview.exitAmt)}}</span></div>
             <div class="pv-row"><span class="tc-label">Sell Brokerage</span><span class="mono font-weight-medium">{{fmtCur(exPreview.brokerage)}}</span></div>
             <div class="pv-row"><span class="tc-label">Sell STT</span><span class="mono font-weight-medium">{{fmtCur(exPreview.stt)}}</span></div>
+            <div class="pv-row"><span class="tc-label">Other (GST, exchange, SEBI, DP)</span><span class="mono font-weight-medium">{{fmtCur(exPreview.other)}}</span></div>
             <div class="pv-row"><span class="tc-label">Net Exit Price</span><span class="mono font-weight-medium text-accent">₹{{n2(exPreview.netPrice)}}</span></div>
             <div class="pv-row"><span class="tc-label">Est. Net P&L (this leg)</span><span class="mono font-weight-medium" :class="colorClass(exPreview.pnl)">{{pnlSign(exPreview.pnl)}}{{fmtCur(exPreview.pnl)}}</span></div>
             <div class="pv-row"><span class="tc-label">Remaining After</span><span class="mono font-weight-medium">{{exPreview.afterRemain === 0 ? '0 (FULLY CLOSED)' : exPreview.afterRemain + ' qty'}}</span></div>
@@ -1110,7 +1112,18 @@
             <v-col cols="2"><v-text-field v-model="cfgEdit[prefix+'_'+charge+'_Sell_Cap']" label="Sell Cap ₹" variant="outlined" density="compact" class="mono" hide-details></v-text-field></v-col>
           </v-row>
         </div>
-        <div class="text-caption" style="color:#94A3B8;">Set rate to 0 if not applicable. Set cap to 0 for no cap.</div>
+        <div class="text-overline text-accent mb-2">Statutory charges (both contracts)</div>
+        <v-row dense class="mb-2">
+          <v-col cols="4"><v-text-field v-model="cfgEdit.Txn_Charge_Pct" label="Exchange txn %" variant="outlined" density="compact" class="mono" hide-details></v-text-field></v-col>
+          <v-col cols="4"><v-text-field v-model="cfgEdit.SEBI_Per_Crore" label="SEBI ₹/crore" variant="outlined" density="compact" class="mono" hide-details></v-text-field></v-col>
+          <v-col cols="4"><v-text-field v-model="cfgEdit.GST_Pct" label="GST %" variant="outlined" density="compact" class="mono" hide-details></v-text-field></v-col>
+        </v-row>
+        <v-row dense class="mb-2">
+          <v-col cols="4"><v-text-field v-model="cfgEdit.MIS_Stamp_Buy" label="MIS stamp % (buy)" variant="outlined" density="compact" class="mono" hide-details></v-text-field></v-col>
+          <v-col cols="4"><v-text-field v-model="cfgEdit.CNC_Stamp_Buy" label="CNC stamp % (buy)" variant="outlined" density="compact" class="mono" hide-details></v-text-field></v-col>
+          <v-col cols="4"><v-text-field v-model="cfgEdit.CNC_DP_Sell" label="CNC DP ₹ per sell" variant="outlined" density="compact" class="mono" hide-details></v-text-field></v-col>
+        </v-row>
+        <div class="text-caption" style="color:#94A3B8;">Set rate to 0 if not applicable. Set cap to 0 for no cap. GST applies to brokerage + SEBI + exchange charges. DP is charged on every delivery sell leg.</div>
       </v-card-text>
       <v-divider></v-divider>
       <v-card-actions>
@@ -1219,6 +1232,37 @@
           </template>
         </div>
 
+        <!-- Charges -->
+        <div v-if="vtCharges.show" class="dialog-section" style="border-color:rgba(148,163,184,0.3);background:rgba(148,163,184,0.04);">
+          <div class="dialog-section-title" style="color:#94A3B8;"><v-icon size="14" color="#94A3B8">mdi-receipt-text-outline</v-icon>Charges</div>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead>
+              <tr style="color:#94A3B8;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">
+                <th style="text-align:left;font-weight:600;padding:4px 0;"></th>
+                <th style="text-align:right;font-weight:600;padding:4px 0;">Buy</th>
+                <th style="text-align:right;font-weight:600;padding:4px 0;">Exit</th>
+                <th style="text-align:right;font-weight:600;padding:4px 0;">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="r in vtCharges.rows" :key="r.key" style="border-top:1px solid #1E293B;">
+                <td style="padding:4px 0;color:#CBD5E1;">{{r.label}}</td>
+                <td class="mono" style="text-align:right;padding:4px 0;">{{r.buy===null?'—':fmtCur(r.buy)}}</td>
+                <td class="mono" style="text-align:right;padding:4px 0;">{{r.exit===null?'—':fmtCur(r.exit)}}</td>
+                <td class="mono" style="text-align:right;padding:4px 0;">{{r.total===null?'—':fmtCur(r.total)}}</td>
+              </tr>
+              <tr style="border-top:1px solid #475569;font-weight:700;">
+                <td style="padding:6px 0;">Total charges</td>
+                <td class="mono" style="text-align:right;padding:6px 0;">{{fmtCur(vtCharges.buyTotal)}}</td>
+                <td class="mono" style="text-align:right;padding:6px 0;">{{vtCharges.hasExit?fmtCur(vtCharges.exitTotal):'—'}}</td>
+                <td class="mono text-yellow" style="text-align:right;padding:6px 0;">{{fmtCur(vtCharges.total)}}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div v-if="vtCharges.partial" class="text-caption mt-2" style="color:#94A3B8;">Some charges are not itemised: this trade was saved before GST, stamp, exchange and SEBI charges were added, or rates have changed since. Totals are the amounts actually recorded.</div>
+          <div v-else class="text-caption mt-2" style="color:#94A3B8;">P&amp;L above is net of these charges.</div>
+        </div>
+
         <!-- Exit Legs -->
         <div v-if="vtR.legDetails.length" class="dialog-section" style="border-color:rgba(251,146,60,0.3);background:rgba(251,146,60,0.04);">
           <div class="dialog-section-title" style="color:#FB923C;"><v-icon size="14" color="#FB923C">mdi-arrow-down-box-outline</v-icon>Exit Legs</div>
@@ -1309,6 +1353,12 @@
 <script>
 const { createApp, ref, computed, watch, reactive, onMounted, nextTick } = Vue;
 
+// Zerodha statutory charges used when a key is missing from the Config sheet (keep in sync with the .gs)
+const OTHER_CHARGE_DEFAULTS = {
+  Txn_Charge_Pct:0.00307, SEBI_Per_Crore:10, GST_Pct:18,
+  MIS_Stamp_Buy:0.003, CNC_Stamp_Buy:0.015, CNC_DP_Sell:15.34
+};
+
 const app = createApp({
   data() {
     const now = new Date();
@@ -1332,7 +1382,9 @@ const app = createApp({
         MIS_Brok_Buy:0.03, MIS_Brok_Buy_Cap:20, MIS_Brok_Sell:0.03, MIS_Brok_Sell_Cap:20,
         MIS_STT_Buy:0, MIS_STT_Buy_Cap:0, MIS_STT_Sell:0.025, MIS_STT_Sell_Cap:0,
         CNC_Brok_Buy:0, CNC_Brok_Buy_Cap:0, CNC_Brok_Sell:0, CNC_Brok_Sell_Cap:0,
-        CNC_STT_Buy:0.1, CNC_STT_Buy_Cap:0, CNC_STT_Sell:0.1, CNC_STT_Sell_Cap:0
+        CNC_STT_Buy:0.1, CNC_STT_Buy_Cap:0, CNC_STT_Sell:0.1, CNC_STT_Sell_Cap:0,
+        Txn_Charge_Pct:0.00307, SEBI_Per_Crore:10, GST_Pct:18,
+        MIS_Stamp_Buy:0.003, CNC_Stamp_Buy:0.015, CNC_DP_Sell:15.34
       },
 
       // Trades
@@ -1560,7 +1612,7 @@ const app = createApp({
       const slp=bp>0&&sl>0?(Math.abs(bp-sl)/bp*100):0;
       const risk=this.capital>0&&sl>0?(qty*Math.abs(bp-sl))/this.capital*100:0;
       const ch=this.calcCharges(bp,qty,this.nt.contract,'Buy');
-      return {show:true, inv, pos, slp, risk, brokerage:ch.brokerage, stt:ch.stt, totalCharges:ch.totalCharges, netPrice:ch.netPrice};
+      return {show:true, inv, pos, slp, risk, brokerage:ch.brokerage, stt:ch.stt, other:ch.totalCharges-ch.brokerage-ch.stt, totalCharges:ch.totalCharges, netPrice:ch.netPrice};
     },
 
     selectedTradeObj() {
@@ -1577,6 +1629,35 @@ const app = createApp({
       return this.getRData(this.vtRaw);
     },
 
+    // Charges breakdown for the View popup. Only totals are stored per trade/leg, so the split is
+    // recomputed from raw price/qty and shown only where it reconciles with the stored total.
+    vtCharges() {
+      if (!this.vtRaw) return {show:false};
+      const vt=this.vt, c=vt.contract;
+      const KEYS=['brokerage','stt','txn','sebi','gst','stamp','dp'];
+      const LABELS={brokerage:'Brokerage',stt:'STT',txn:'Exchange txn',sebi:'SEBI',gst:'GST',stamp:'Stamp duty',dp:'DP charge'};
+      const sumOf=o=>KEYS.reduce((a,k)=>a+(o[k]||0),0);
+      const side=(parts,stored)=>{
+        const agg={}; KEYS.forEach(k=>agg[k]=0);
+        parts.forEach(ch=>KEYS.forEach(k=>{agg[k]+=ch[k]||0;}));
+        const tol=0.05;
+        if (Math.abs(sumOf(agg)-stored)<=tol) return {stored,mode:'full',comp:agg};
+        if (Math.abs(agg.brokerage+agg.stt-stored)<=tol) return {stored,mode:'legacy',comp:{brokerage:agg.brokerage,stt:agg.stt}};
+        return {stored,mode:'total',comp:{}};
+      };
+      const buy=side([this.calcCharges(vt.buyPrice,vt.totalQty,c,'Buy')], this.vtRaw.buyCharges||0);
+      const legs=this.vtViewLegs||[];
+      const hasExit=legs.length>0;
+      const exit=side(legs.map(l=>this.calcCharges(l.price,l.qty,c,'Sell')), legs.reduce((a,l)=>a+(l.exitCharges||0),0));
+      const rows=KEYS.map(k=>{
+        const b=buy.comp[k]??null, e=hasExit?(exit.comp[k]??null):null;
+        return {key:k,label:LABELS[k],buy:b,exit:e,total:(b===null&&e===null)?null:(b||0)+(e||0)};
+      }).filter(r=>(r.buy||0)>0.005||(r.exit||0)>0.005);
+      const total=buy.stored+exit.stored;
+      return {show:total>0, rows, hasExit, buyTotal:buy.stored, exitTotal:exit.stored, total,
+              partial: buy.mode!=='full' || (hasExit && exit.mode!=='full')};
+    },
+
     exPreview() {
       const ep=parseFloat(this.ex.exitPrice)||0, eq=parseInt(this.ex.exitQty)||0;
       if (!ep||!eq) return {show:false};
@@ -1586,7 +1667,7 @@ const app = createApp({
       const netBuyAmt=eq*this.ex.netBuy;
       const netExitAmt=eq*ch.netPrice;
       const pnl=this.ex.type==='L'?(netExitAmt-netBuyAmt):(netBuyAmt-netExitAmt);
-      return {show:true, exitAmt, brokerage:ch.brokerage, stt:ch.stt, netPrice:ch.netPrice, pnl, afterRemain:this.ex.remQty-eq};
+      return {show:true, exitAmt, brokerage:ch.brokerage, stt:ch.stt, other:ch.totalCharges-ch.brokerage-ch.stt, netPrice:ch.netPrice, pnl, afterRemain:this.ex.remQty-eq};
     },
 
     // ==================== ANALYTICS ====================
@@ -1910,7 +1991,8 @@ const app = createApp({
       if (!d) return;
       this.capital=d.capital||0; this.invested=d.invested||0; this.investedPct=d.investedPct||0;
       this.totalRealisedPnl=d.totalRealisedPnl||0; this.totalPartialRealisedPnl=d.totalPartialRealisedPnl||0; this.runningCapital=d.runningCapital||d.capital||0;
-      this.config=d.config||this.config;
+      // Keep built-in statutory defaults for keys an older Config sheet doesn't have yet
+      this.config={...OTHER_CHARGE_DEFAULTS, ...(d.config||this.config)};
       this.openPositions=d.openPositions||0; this.uniqueOpen=d.uniqueOpen||0;
       this.realisedROCE=d.realisedROCE||0; this.unrealisedROCE=d.unrealisedROCE||0;
       this.losingStreak=d.losingStreak||0; this.consecWins=d.consecWins||0;
@@ -2022,17 +2104,24 @@ const app = createApp({
     },
 
     // ==================== CHARGES ====================
+    // KEEP IN SYNC with calcCharges() in trading-journal.gs
     calcCharges(rawPrice, qty, contract, side) {
       const tv=rawPrice*qty, pfx=(contract==='CNC')?'CNC':'MIS';
       const brokRate=(this.config[pfx+'_Brok_'+side]||0)/100;
       const brokCap=this.config[pfx+'_Brok_'+side+'_Cap']||0;
       const sttRate=(this.config[pfx+'_STT_'+side]||0)/100;
       const sttCap=this.config[pfx+'_STT_'+side+'_Cap']||0;
+      const other=k=>{const v=this.config[k]; return (v===undefined||v===null||v===''||isNaN(Number(v)))?OTHER_CHARGE_DEFAULTS[k]:Number(v);};
       let brokerage=tv*brokRate; if(brokCap>0) brokerage=Math.min(brokerage,brokCap);
       let stt=tv*sttRate; if(sttCap>0) stt=Math.min(stt,sttCap);
-      const totalCharges=brokerage+stt;
+      const txn=tv*other('Txn_Charge_Pct')/100;
+      const sebi=tv*other('SEBI_Per_Crore')/10000000;
+      const gst=(brokerage+txn+sebi)*other('GST_Pct')/100;
+      const stamp=side==='Buy'?tv*other(pfx+'_Stamp_Buy')/100:0;
+      const dp=(side==='Sell'&&pfx==='CNC')?other('CNC_DP_Sell'):0;
+      const totalCharges=brokerage+stt+txn+sebi+gst+stamp+dp;
       const netPrice=side==='Buy'?(tv+totalCharges)/qty:(tv-totalCharges)/qty;
-      return {brokerage,stt,totalCharges,netPrice};
+      return {brokerage,stt,txn,sebi,gst,stamp,dp,totalCharges,netPrice};
     },
 
     chargeSummary(prefix) {
@@ -2042,7 +2131,11 @@ const app = createApp({
       const sb=this.config[prefix+'_STT_Buy']||0, ss=this.config[prefix+'_STT_Sell']||0;
       if(bb>0||bs>0){let s='Brok ';if(bb===bs){s+=bb+'%';if(bbc>0)s+=' (₹'+bbc+' cap)';}else{if(bb>0){s+=bb+'% buy';if(bbc>0)s+='(₹'+bbc+')';}if(bs>0){s+=(bb>0?' · ':'')+bs+'% sell';if(bsc>0)s+='(₹'+bsc+')';}}parts.push(s);}
       if(sb>0||ss>0){let s='STT ';if(sb===ss)s+=sb+'% buy+sell';else{if(sb>0)s+=sb+'% buy';if(ss>0)s+=(sb>0?' · ':'')+ss+'% sell';}parts.push(s);}
-      return parts.length?parts.join(' · '):'No charges';
+      const stamp=this.config[prefix+'_Stamp_Buy']??OTHER_CHARGE_DEFAULTS[prefix+'_Stamp_Buy'];
+      if(stamp>0) parts.push('Stamp '+stamp+'% buy');
+      if(prefix==='CNC'){const dp=this.config.CNC_DP_Sell??OTHER_CHARGE_DEFAULTS.CNC_DP_Sell; if(dp>0) parts.push('DP ₹'+dp+'/sell');}
+      parts.push('+ GST, exch, SEBI');
+      return parts.join(' · ');
     },
 
     // ==================== R-MULTIPLE CALC ====================
@@ -2372,7 +2465,8 @@ const app = createApp({
       const KEYS=['MIS_Brok_Buy','MIS_Brok_Buy_Cap','MIS_Brok_Sell','MIS_Brok_Sell_Cap',
         'MIS_STT_Buy','MIS_STT_Buy_Cap','MIS_STT_Sell','MIS_STT_Sell_Cap',
         'CNC_Brok_Buy','CNC_Brok_Buy_Cap','CNC_Brok_Sell','CNC_Brok_Sell_Cap',
-        'CNC_STT_Buy','CNC_STT_Buy_Cap','CNC_STT_Sell','CNC_STT_Sell_Cap'];
+        'CNC_STT_Buy','CNC_STT_Buy_Cap','CNC_STT_Sell','CNC_STT_Sell_Cap',
+        'Txn_Charge_Pct','SEBI_Per_Crore','GST_Pct','MIS_Stamp_Buy','CNC_Stamp_Buy','CNC_DP_Sell'];
       for(const k of KEYS){
         const v=parseFloat(this.cfgEdit[k]);
         if(isNaN(v)||v<0){this.toast('Invalid value for '+k,'error');return;}
